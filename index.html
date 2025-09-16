@@ -21,7 +21,7 @@
           <div class="h-9 w-9 animate-[spin_9s_linear_infinite] rounded-xl bg-gradient-to-br from-sky-300 via-fuchsia-300 to-amber-300"></div>
           <div>
             <div class="text-xs uppercase tracking-widest text-black/60">Moments Hub</div>
-            <div class="text-lg font-extrabold leading-5">GitHub Pages Edition</div>
+            <div class="text-lg font-extrabold leading-5">Personal Account.</div>
           </div>
         </div>
         <nav class="flex flex-wrap gap-2">
@@ -576,5 +576,178 @@
     });
   })();
   </script>
+<script>
+// ======================================================
+// Pagination + Cached Indexes (GitHub Pages, no backend)
+// ======================================================
+(function(){
+  const IDX = { moments: 'indexes/moments.json' };
+  const PAGE_SIZE = 12;        // feed page size
+  const VERT_PAGE = 6;         // vertical viewer page size
+  let momentsIndex = null;     // in-memory cache
+  let feedCursor = 0;          // offsets
+  let vertCursor = 0;
+
+  const byId = (id)=>document.getElementById(id);
+  const rawURL = (path)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${path}`;
+
+  async function readRaw(path){ try { return await (await fetch(rawURL(path), {cache:'no-store'})).json(); } catch { return null; } }
+  async function writeIndex(path, data, msg){ await upsertText(path, JSON.stringify(data,null,2), msg||'update index'); }
+
+  // Build or load moments index
+  async function loadMomentsIndex({force=false}={}){
+    if(!force){
+      if(momentsIndex) return momentsIndex;
+      const cached = sessionStorage.getItem('mh:index:moments');
+      if(cached){ try{ momentsIndex = JSON.parse(cached); return momentsIndex; }catch{} }
+    }
+    let idx = await readRaw(IDX.moments);
+    if(!idx){
+      // Fallback: slow build from directory listing (first run)
+      let arr = [];
+      try { arr = await ghGet('moments'); } catch {}
+      idx = [];
+      for(const it of (arr||[])){
+        if(it.type==='file' && it.name.endsWith('.json')){
+          try{
+            const j = await (await fetch(it.download_url)).json();
+            idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' });
+          }catch{}
+        }
+      }
+      try { await writeIndex(IDX.moments, idx, 'build moments index'); } catch {}
+    }
+    idx.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+    momentsIndex = idx;
+    try { sessionStorage.setItem('mh:index:moments', JSON.stringify(idx)); } catch {}
+    return idx;
+  }
+
+  // FEED (paginated)
+  async function renderFeedPage(reset=false){
+    const host = byId('feed');
+    if(reset){ feedCursor = 0; host.innerHTML=''; }
+    const idx = await loadMomentsIndex({force:false});
+    const slice = idx.slice(feedCursor, feedCursor + PAGE_SIZE);
+    if(slice.length===0 && feedCursor===0){ host.innerHTML = `<div class="text-sm text-black/60">No posts yet.</div>`; return; }
+
+    // Author mini-cache (per page)
+    const authorMap = new Map();
+    for(const m of slice){
+      if(!authorMap.has(m.author)){
+        try{ const p = await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); }
+        catch{ authorMap.set(m.author,null); }
+      }
+      host.insertAdjacentHTML('beforeend', cardHTML(m, authorMap.get(m.author)));
+    }
+    feedCursor += slice.length;
+
+    // Load more button
+    let moreBtn = document.getElementById('feed-more');
+    if(feedCursor < idx.length){
+      if(!moreBtn){
+        moreBtn = document.createElement('button');
+        moreBtn.id = 'feed-more';
+        moreBtn.className = 'w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm shadow-sm';
+        moreBtn.textContent = 'Load more';
+        moreBtn.onclick = ()=> renderFeedPage(false);
+        // place button after grid
+        host.parentElement.appendChild(moreBtn);
+      }
+    } else if(moreBtn){ moreBtn.remove(); }
+  }
+  // Override original loader
+  window.loadFeed = async function(){ await renderFeedPage(true); };
+
+  // VERTICAL (lazy append)
+  async function renderVerticalPage(reset=false){
+    const host = byId('mom-vertical');
+    if(reset){ vertCursor = 0; host.innerHTML=''; }
+    const idx = await loadMomentsIndex({force:false});
+    const chunk = idx.slice(vertCursor, vertCursor + VERT_PAGE);
+    const authorMap = new Map();
+    for(const m of chunk){
+      if(!authorMap.has(m.author)){
+        try{ const p = await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); }
+        catch{ authorMap.set(m.author,null); }
+      }
+      host.insertAdjacentHTML('beforeend', verticalItemHTML(m, authorMap.get(m.author)));
+    }
+    vertCursor += chunk.length;
+
+    // Attach autoplay observer
+    const vids = Array.from(host.querySelectorAll('.vitem'));
+    if('IntersectionObserver' in window){
+      const obs = new IntersectionObserver((entries)=>{
+        entries.forEach(en=>{
+          const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}); } else { v.pause(); }
+        });
+      },{threshold:[0,0.6,1]});
+      vids.forEach(v=>obs.observe(v));
+    } else { vids.forEach(v=> v.play && v.play().catch(()=>{})); }
+  }
+  window.loadVertical = async function(){ await renderVerticalPage(true); };
+  // Infinite scroll within the vertical container
+  (function(){
+    const host = byId('mom-vertical');
+    host.addEventListener('scroll', ()=>{
+      if(host.scrollTop + host.clientHeight >= host.scrollHeight - 200){ renderVerticalPage(false); }
+    });
+  })();
+
+  // Post: also updates index atomically-ish
+  const origPostHandler = document.getElementById('mom-post').onclick;
+  document.getElementById('mom-post').onclick = async ()=>{
+    try{
+      if(!state.me) return alert('Connect first');
+      const file = byId('mom-file').files[0]; if(!file) return alert('Upload a file first');
+      const kind = (file.type||'').startsWith('video') ? 'video' : 'image';
+      const caption = byId('mom-caption').value.trim();
+      const tags = byId('mom-tags').value.split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean);
+      const link = byId('mom-link').value.trim()||null;
+      const media_url = await uploadMedia(file);
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const created_at = new Date().toISOString();
+      const meta = { id, author: state.me.login, kind, caption, tags, link, media_url, created_at };
+      await upsertText(`moments/${id}.json`, JSON.stringify(meta,null,2), `post moment ${id}`);
+      // Update index (prepend)
+      let idx = await loadMomentsIndex({force:true}) || [];
+      idx.unshift({ id, author: meta.author, kind, caption, tags, link, media_url, created_at });
+      try { await writeIndex(IDX.moments, idx, 'append moments index'); } catch {}
+      sessionStorage.removeItem('mh:index:moments');
+      alert('Posted ✓');
+      byId('mom-file').value=''; byId('mom-caption').value=''; byId('mom-tags').value=''; byId('mom-link').value='';
+      await loadFeed(); await loadVertical();
+    }catch(err){ alert(err.message); }
+  };
+
+  // Admin button: Rebuild indexes
+  (function mountAdminButtons(){
+    const adminSection = document.getElementById('tab-admin');
+    if(!adminSection) return;
+    const holder = adminSection.querySelector('.card .text-sm') || adminSection;
+    const btn = document.createElement('button');
+    btn.className='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm';
+    btn.textContent='Rebuild indexes';
+    btn.onclick = async ()=>{
+      if(!state.isAdmin) return alert('Admins only');
+      let idx = [];
+      try{
+        const arr = await ghGet('moments');
+        for(const it of (arr||[])){
+          if(it.type==='file' && it.name.endsWith('.json')){
+            try{ const j = await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{}
+          }
+        }
+      }catch{}
+      idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
+      await writeIndex(IDX.moments, idx, 'rebuild moments index');
+      sessionStorage.removeItem('mh:index:moments');
+      alert('Indexes rebuilt ✓');
+    };
+    holder.appendChild(btn);
+  })();
+})();
+</script>
 </body>
 </html>
