@@ -14,13 +14,15 @@
     .chip{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:rgba(0,0,0,.08)}
     .dropzone{border:1px dashed rgba(0,0,0,.15)}
     .story-ring{box-shadow:0 0 0 2px #e879f9}
-    .modal-backdrop{background:rgba(0,0,0,.6)}
     .no-scrollbar::-webkit-scrollbar{display:none}
     .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
     .safe-bottom{padding-bottom:env(safe-area-inset-bottom)}
     .progress-bar{display:flex;gap:.25rem}
     .progress-seg{flex:1;height:3px;background:rgba(255,255,255,.35);border-radius:999px;overflow:hidden}
     .progress-seg>span{display:block;height:100%;width:0;background:white}
+    /* subtle transitions to avoid “jumps” */
+    .fade-enter{opacity:.001; transform:translateY(4px)}
+    .fade-enter-active{transition:opacity .18s ease, transform .18s ease; opacity:1; transform:none}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -70,7 +72,7 @@
     </div>
   </div>
 
-  <main class="mx-auto max-w-6xl px-4 py-6 space-y-8 pb-32 md:pb-8">
+  <main class="mx-auto max-w-6xl px-4 py-6 space-y-8 pb-28 md:pb-10">
     <!-- FEED -->
     <section id="tab-feed" class="space-y-6">
       <div class="flex flex-wrap gap-2 justify-end">
@@ -90,11 +92,10 @@
         <div id="stories-row" class="mt-3 flex gap-3 overflow-x-auto pb-2 no-scrollbar"></div>
       </div>
 
-      <!-- IG-style feed (single column) -->
       <div id="feed" class="grid grid-cols-1 gap-4"></div>
     </section>
 
-    <!-- MOMENTS (vertical viewer) -->
+    <!-- MOMENTS -->
     <section id="tab-moments" class="hidden space-y-4">
       <div class="rounded-2xl border border-black/10 bg-white/80 p-0 card">
         <div class="flex items-center justify-between p-4">
@@ -200,9 +201,8 @@
   </div>
 
   <!-- MODALS -->
-
-  <!-- GitHub PAT only -->
-  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+  <!-- Connect (PAT only) -->
+  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
     <div class="w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold">Connect to GitHub</h3>
@@ -220,7 +220,7 @@
   </div>
 
   <!-- Compose Moments -->
-  <div id="compose-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+  <div id="compose-modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
     <div class="w-full max-w-xl h-[min(90svh,720px)] overflow-auto rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between sticky top-0 bg-white z-10 pb-2">
         <h3 class="text-sm font-semibold">Create Moments</h3>
@@ -243,7 +243,7 @@
   </div>
 
   <!-- Moment Viewer -->
-  <div id="moment-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+  <div id="moment-modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
     <div class="w-full max-w-3xl rounded-2xl border border-black/10 bg-white p-0 card overflow-hidden">
       <div class="flex items-center justify-between px-4 py-2 border-b border-black/10">
         <div class="flex items-center gap-3" id="moment-author"></div>
@@ -268,7 +268,7 @@
   </div>
 
   <!-- Stories Viewer -->
-  <div id="stories-viewer" class="hidden fixed inset-0 z-50 modal-backdrop">
+  <div id="stories-viewer" class="hidden fixed inset-0 z-50 bg-black/60">
     <div class="relative w-full h-full">
       <div class="absolute inset-0 flex items-center justify-center">
         <div class="relative w-[min(420px,96vw)] h-[92svh] rounded-2xl overflow-hidden bg-black text-white">
@@ -300,7 +300,7 @@
   </div>
 
   <!-- App Account: Sign In -->
-  <div id="signin-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+  <div id="signin-modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
     <div class="w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold">Sign in (App Account)</h3>
@@ -315,7 +315,7 @@
   </div>
 
   <!-- App Account: Register -->
-  <div id="register-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+  <div id="register-modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
     <div class="w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold">Register (New App Account)</h3>
@@ -332,7 +332,7 @@
   </div>
 
   <!-- Studio Pro -->
-  <div id="studio-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+  <div id="studio-modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
     <div class="w-full max-w-2xl h-[min(90svh,720px)] overflow-auto rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between sticky top-0 bg-white z-10 pb-2">
         <h3 class="text-sm font-semibold">Studio Pro (Beta)</h3>
@@ -344,7 +344,7 @@
           🎞️ Select files for a batch
           <input id="studio-files" type="file" accept="video/*,image/*" class="hidden" multiple>
         </label>
-        <textarea id="studio-captions" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 h-28" placeholder="One caption per line (line 1 → file 1, etc.)"></textarea>
+        <textarea id="studio-captions" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 h-28" placeholder="One caption per line"></textarea>
         <input id="studio-tags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#global, #tags, #for, #all" />
         <div class="flex justify-between items-center">
           <div id="studio-status" class="text-[11px] text-black/60">No batch loaded.</div>
@@ -354,89 +354,103 @@
     </div>
   </div>
 <script>
-// ===== Utilities & State =====
+// ---------- tiny helpers for smooth UX ----------
 const byId = (id)=>document.getElementById(id);
-const modal = byId('modal'), composeModal = byId('compose-modal'),
-      momentModal = byId('moment-modal'), storiesViewer = byId('stories-viewer'),
-      signinModal = byId('signin-modal'), registerModal = byId('register-modal'),
-      studioModal = byId('studio-modal');
+const show = el=>el.classList.remove('hidden');
+const hide = el=>el.classList.add('hidden');
+const raf = (fn)=> (window.requestIdleCallback||window.requestAnimationFrame)(fn);
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
+function toast(msg){
+  const t=document.createElement('div');
+  t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg';
+  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),1800);
+}
+
+// mark-enter for small fade
+function enter(el){ el.classList.add('fade-enter'); raf(()=> el.classList.add('fade-enter-active')); setTimeout(()=> el.classList.remove('fade-enter','fade-enter-active'), 220); }
+
+// keyed morph: patches children by data-key without nuking scroll
+function patchList(host, nextHTML, keyAttr='data-key'){
+  const temp=document.createElement('div'); temp.innerHTML=nextHTML.trim();
+  const oldMap=new Map([...host.children].map(n=>[n.getAttribute(keyAttr)||'', n]));
+  const nextNodes=[...temp.children];
+  const frag=document.createDocumentFragment();
+  nextNodes.forEach(nn=>{
+    const k=nn.getAttribute(keyAttr)||'';
+    const ex=oldMap.get(k);
+    if(ex){ // update only inner section that changes (cheap)
+      if(ex.outerHTML!==nn.outerHTML){ ex.replaceWith(nn); enter(nn); }
+      frag.appendChild(ex||nn);
+      oldMap.delete(k);
+    } else { enter(nn); frag.appendChild(nn); }
+  });
+  // remove leftovers
+  oldMap.forEach(n=>n.remove());
+  // append if new count > old count
+  host.appendChild(frag);
+}
+
+// ---------- state ----------
 const state = {
-  owner: 'hunter9201',
-  repo: 'momentshub-data',
-  branch: 'main',
-  token: '',
-  me: null,
-  isAdmin: false,
-  user: null
+  owner:'hunter9201', repo:'momentshub-data', branch:'main',
+  token:'', me:null, isAdmin:false, user:null
 };
 
-const show = el => el.classList.remove('hidden');
-const hide = el => el.classList.add('hidden');
-const setStatus = (t, ok=false)=>{ const el = byId('conn-status'); if(el) el.innerHTML = ok? `<span class="text-green-700">${t}</span>`:t; };
-const toast = (msg)=>{ const t=document.createElement('div'); t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); };
-
-const switchTab = (t)=>{ ['feed','moments','dms','account','admin'].forEach(k=> byId('tab-'+k).classList.toggle('hidden', k!==t)); updateActiveTabs(t); };
-const updateActiveTabs = (active)=> document.querySelectorAll('.tab-btn').forEach(btn=>{
-  const on = btn.dataset.tab===active;
-  btn.classList.toggle('bg-white', on); btn.classList.toggle('shadow', on); btn.classList.toggle('text-black/70', !on);
-});
+// ---------- tabs & buttons ----------
+const switchTab = (t)=>{ ['feed','moments','dms','account','admin'].forEach(k=> byId('tab-'+k).classList.toggle('hidden', k!==t)); document.querySelectorAll('.tab-btn').forEach(b=>{ const on=b.dataset.tab===t; b.classList.toggle('bg-white', on); b.classList.toggle('shadow', on); b.classList.toggle('text-black/70', !on); }); };
 document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
 switchTab('feed');
 
-// Buttons
-byId('openLoginBtn').onclick=()=>show(modal); byId('closeLoginBtn').onclick=()=>hide(modal);
-byId('openComposeBtn').onclick=()=>show(composeModal); byId('closeComposeBtn').onclick=()=>hide(composeModal);
-byId('closeMomentBtn').onclick=()=>hide(momentModal);
-byId('sv-close').onclick=()=>{ stopStoryTimer(); hide(storiesViewer); };
-storiesViewer.addEventListener('click', (e)=>{ if(e.target===storiesViewer){ stopStoryTimer(); hide(storiesViewer);} });
-byId('fabCompose').onclick=()=>show(composeModal);
+byId('openLoginBtn').onclick=()=>show(byId('modal'));
+byId('closeLoginBtn').onclick=()=>hide(byId('modal'));
+byId('openComposeBtn').onclick=()=>show(byId('compose-modal'));
+byId('closeComposeBtn').onclick=()=>hide(byId('compose-modal'));
+byId('closeMomentBtn').onclick=()=>hide(byId('moment-modal'));
+byId('sv-close').onclick=()=>{ stopStoryTimer(); hide(byId('stories-viewer')); };
+byId('fabCompose').onclick=()=>show(byId('compose-modal'));
 byId('fabStory').onclick=()=> byId('story-files').click();
-byId('fabStudio').onclick=()=>show(studioModal);
-byId('openStudioBtn').onclick=()=>show(studioModal);
-byId('closeStudioBtn').onclick=()=>hide(studioModal);
+byId('fabStudio').onclick=()=>show(byId('studio-modal'));
+byId('openStudioBtn').onclick=()=>show(byId('studio-modal'));
+byId('closeStudioBtn').onclick=()=>hide(byId('studio-modal'));
 
-// ===== GitHub Client (fixed segment encoding) =====
+// ---------- GitHub client with segment encoding & ETag cache ----------
 const GH_API='https://api.github.com';
-const encodePath = (p)=> p.split('/').map(encodeURIComponent).join('/');
-const rawURL=(p)=>`https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+const encodePath=(p)=> p.split('/').map(encodeURIComponent).join('/');
+const rawURL=(p)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
 
-async function gh(method, url, body){
-  const res = await fetch(url, {method, headers:{
-    'Accept':'application/vnd.github+json',
-    ...(state.token? {'Authorization':'Bearer '+state.token}:{}) ,'Content-Type':'application/json'
-  }, body: body? JSON.stringify(body): undefined});
+// simple ETag cache
+const etags = new Map(); // key -> {etag, json}
+
+async function fetchJSONWithCache(url){
+  const cached=etags.get(url);
+  const res = await fetch(url, { headers: { ...(cached?.etag ? {'If-None-Match': cached.etag} : {}) , 'Cache-Control':'no-cache' } });
+  if(res.status===304 && cached){ return cached.json; }
+  if(!res.ok){ throw new Error(`${res.status}`); }
+  const etag = res.headers.get('ETag') || null;
+  const json = await res.json();
+  if(etag) etags.set(url, {etag, json});
+  return json;
+}
+async function gh(method,url,body){
+  const res=await fetch(url,{method,headers:{'Accept':'application/vnd.github+json',...(state.token?{'Authorization':'Bearer '+state.token}:{}) ,'Content-Type':'application/json'}, body: body? JSON.stringify(body):undefined});
   if(!res.ok){ const t=await res.text(); throw new Error(`${res.status}: ${t}`); }
   return res.json();
 }
-async function ghGet(path){
-  const url = `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(state.branch)}`;
-  return gh('GET', url);
-}
+async function ghGet(path){ const url=`${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(state.branch)}`; return gh('GET', url); }
 async function ghGetSha(path){ try{ const j=await ghGet(path); return j.sha; }catch{return null;} }
-async function upsertText(path, text, message){
-  const sha = await ghGetSha(path);
-  const url = `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}`;
-  return gh('PUT', url, {
-    message: message || `update ${path}`,
-    content: btoa(unescape(encodeURIComponent(text))),
-    branch: state.branch,
-    ...(sha?{sha}:{})
-  });
-}
+async function upsertText(path,text,message){ const sha=await ghGetSha(path); const url=`${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}`; const res = await gh('PUT', url, { message:message||`update ${path}`, content:btoa(unescape(encodeURIComponent(text))), branch:state.branch, ...(sha?{sha}:{}) }); etags.delete(rawURL(path)); return res; }
 async function upsertBinary(path,file,message){
-  const buf=await file.arrayBuffer(); const bytes=new Uint8Array(buf); let binary='';
-  for(let i=0;i<bytes.length;i+=0x8000){ binary+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); }
-  const content=btoa(binary);
-  const sha=await ghGetSha(path);
-  const url = `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}`;
-  return gh('PUT', url, { message: message||`upload ${path}`, content, branch: state.branch, ...(sha?{sha}:{}) });
+  const buf=await file.arrayBuffer(); const bytes=new Uint8Array(buf); let binary=''; for(let i=0;i<bytes.length;i+=0x8000){ binary+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); }
+  const content=btoa(binary); const sha=await ghGetSha(path); const url=`${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}`;
+  const res = await gh('PUT', url, { message: message||`upload ${path}`, content, branch: state.branch, ...(sha?{sha}:{}) });
+  etags.delete(rawURL(path)); return res;
 }
-async function ensureDirs(){ const mk=async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`);}catch{} };
-  await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media'); await mk('dms'); await mk('indexes'); await mk('engagement/moments'); await mk('engagement/stories');
-}
+async function ensureDirs(){ const mk=async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`);}catch{} }; await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media'); await mk('dms'); await mk('indexes'); await mk('engagement/moments'); await mk('engagement/stories'); }
 
-// ===== Connect (PAT only, defaults for owner/repo/branch) =====
+// ---------- Connect (PAT only) ----------
+function setStatus(text, ok=false){ const el=byId('conn-status'); el.innerHTML = ok? `<span class="text-green-700">${text}</span>` : text; }
+
 byId('gh-connect').onclick = async ()=>{
   state.token = byId('gh-token').value.trim();
   const msg=byId('gh-msg');
@@ -444,50 +458,47 @@ byId('gh-connect').onclick = async ()=>{
     const ures=await fetch(`${GH_API}/user`,{headers: state.token? {Authorization:'Bearer '+state.token}:{}}); if(!ures.ok) throw new Error('Invalid token or network');
     const me=await ures.json(); state.me=me;
     setStatus(`Connected as <strong>@${me.login}</strong>. Repo: <code>${state.owner}/${state.repo}@${state.branch}</code>`, true);
-    msg.textContent='Connected ✓'; hide(modal);
+    msg.textContent='Connected ✓'; hide(byId('modal'));
     await ensureDirs(); await ensureProfile(me.login); await loadAdminStatus();
     await Promise.all([loadFeed(), loadStories(), loadVertical(), loadPeople(), renderProfileBox(), renderAdmin(), restoreAppUser()]);
-    toast('Connected to GitHub');
+    toast('Connected');
   }catch(err){ msg.textContent=err.message; setStatus('Not connected. Check your token.'); }
 };
 
 async function ensureProfile(login){
-  const p=`profiles/${login}.json`; let cur=null; try{ cur=await (await fetch(rawURL(p))).json(); }catch{}
+  const p=`profiles/${login}.json`; let cur=null; try{ cur=await fetchJSONWithCache(rawURL(p)); }catch{}
   if(!cur || !cur.login){ const data={ login, name: state.me?.name || login, handle:null, role:'user', status:'active', created_at:new Date().toISOString() }; await upsertText(p, JSON.stringify(data,null,2), `create profile ${login}`); }
 }
 async function loadAdminStatus(){
-  try{ const admins=await (await fetch(rawURL('admins.json'))).json();
-    state.isAdmin=Array.isArray(admins)&&admins.includes(state.me?.login);
-    byId('adminTabBtn').classList.toggle('hidden', !state.isAdmin);
-    byId('adminTabBtnMobile').classList.toggle('hidden', !state.isAdmin);
+  try{ const admins=await fetchJSONWithCache(rawURL('admins.json')); state.isAdmin=Array.isArray(admins)&&admins.includes(state.me?.login);
+    byId('adminTabBtn').classList.toggle('hidden', !state.isAdmin); byId('adminTabBtnMobile').classList.toggle('hidden', !state.isAdmin);
   }catch{ byId('adminTabBtn').classList.add('hidden'); byId('adminTabBtnMobile').classList.add('hidden'); state.isAdmin=false; }
 }
 async function renderProfileBox(){
   const box=byId('profile-box'); if(!state.me){ box.innerHTML=`<div class="text-black/60">Not connected.</div>`; return; }
-  const ppath=`profiles/${state.me.login}.json`; let prof=null; try{ prof=await (await fetch(rawURL(ppath))).json(); }catch{}
+  const ppath=`profiles/${state.me.login}.json`; let prof=null; try{ prof=await fetchJSONWithCache(rawURL(ppath)); }catch{}
   box.innerHTML=`<div class="flex items-center gap-3">
     <div class="h-12 w-12 rounded-full border border-black/10 bg-white/70 grid place-items-center text-xs">${(prof?.name||state.me.login).slice(0,1)}</div>
     <div><div class="font-semibold">${prof?.name||state.me.login} <span class="chip">${prof?.role||'user'}</span></div>
     <div class="text-xs text-black/60">@${state.me.login} ${prof?.handle? '• @'+prof.handle:''}</div></div></div>`;
 }
 
-// ===== Engagement storage =====
+// ---------- Engagement ----------
 const ENG = { moments: id=>`engagement/moments/${id}.json`, stories: id=>`engagement/stories/${id}.json` };
-async function ensureEngagement(kind,id){ const path=ENG[kind](id); try{ await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ await upsertText(path, JSON.stringify({likes:[],comments:[]},null,2), `init engagement ${kind}/${id}`); } }
-async function readEngagement(kind,id){ const path=ENG[kind](id); try{ return await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ return {likes:[],comments:[]}; } }
+async function ensureEngagement(kind,id){ const path=ENG[kind](id); try{ await fetchJSONWithCache(rawURL(path)); }catch{ await upsertText(path, JSON.stringify({likes:[],comments:[]},null,2), `init engagement ${kind}/${id}`); } }
+async function readEngagement(kind,id){ const path=ENG[kind](id); try{ return await fetchJSONWithCache(rawURL(path)); }catch{ return {likes:[],comments:[]}; } }
 async function writeEngagement(kind,id,data){ const path=ENG[kind](id); await upsertText(path, JSON.stringify(data,null,2), `engage ${kind}/${id}`); }
 async function toggleLike(kind,id){ if(!currentLogin()) return alert('Sign in to an app account first'); await ensureEngagement(kind,id); const data=await readEngagement(kind,id); const who=currentLogin(); const i=(data.likes||[]).indexOf(who); if(i>=0) data.likes.splice(i,1); else data.likes.push(who); await writeEngagement(kind,id,data); return data; }
 async function addComment(kind,id,text){ if(!currentLogin()) return alert('Sign in to an app account first'); await ensureEngagement(kind,id); const data=await readEngagement(kind,id); data.comments=data.comments||[]; data.comments.push({id:`${Date.now()}_${Math.random().toString(36).slice(2)}`,from:currentLogin(),text,ts:Date.now()}); await writeEngagement(kind,id,data); }
 function renderComments(list){ return (list||[]).slice(-150).map(c=>`<div class="rounded-xl bg-black/5 p-2"><div class="text-[11px] text-black/60">@${c.from} • ${new Date(c.ts).toLocaleString()}</div><div class="text-sm">${c.text}</div></div>`).join(''); }
 async function refreshEngagementUI(kind,id,{likeCountEl, commentCountEl, commentsHost}){ const data=await readEngagement(kind,id); if(likeCountEl) likeCountEl.textContent=data.likes?.length||0; if(commentCountEl) commentCountEl.textContent=data.comments?.length||0; if(commentsHost) commentsHost.innerHTML=renderComments(data.comments); }
 
-// ===== Moments (IG-style) =====
+// ---------- Moments feed (smooth) ----------
 function cardHTML(m, author){
   const media = m.kind==='video'
     ? `<video class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" muted playsinline loop></video>`
     : `<img class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" alt="">`;
-  return `
-  <article class="rounded-2xl border bg-white shadow p-3" data-moment="${m.id}">
+  return `<div class="rounded-2xl border bg-white shadow p-3" data-key="${m.id}">
     <header class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-2">
         <div class="h-8 w-8 rounded-full bg-black/10 grid place-items-center text-xs">${(author?.name||m.author||'—').slice(0,1)}</div>
@@ -502,7 +513,7 @@ function cardHTML(m, author){
     </div>
     <div class="text-sm"><span class="font-semibold">${author?.name||m.author}</span> ${m.caption||''}</div>
     ${ (m.tags?.length? `<div class="mt-1 text-xs text-black/60">${m.tags.map(t=>'#'+t).join(' ')}</div>`:'') }
-  </article>`;
+  </div>`;
 }
 
 async function uploadMedia(file){
@@ -521,28 +532,29 @@ async function postOneMomentFromFile(file, common){
   const meta={ id, author: currentLogin(), kind, caption: common.caption, tags: common.tags, link: common.link, media_url, created_at:new Date().toISOString() };
   await upsertText(`moments/${id}.json`, JSON.stringify(meta,null,2), `post moment ${id}`);
   await ensureEngagement('moments', id);
+  momentsIndex?.unshift?.(meta); // optimistic
+  renderFeedPage(true); // soft rerender
   return meta;
 }
 function parseTags(v){ return (v||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean); }
-function limitConcurrency(items,limit,worker){ return new Promise((resolve,reject)=>{ let i=0,active=0,results=[]; const run=()=>{ while(active<limit && i<items.length){ const cur=items[i]; const idx=i; i++; active++; Promise.resolve(worker(cur,idx)).then(r=>results[idx]=r).catch(reject).finally(()=>{ active--; if(i>=items.length&&active===0) resolve(results); else run(); }); } }; run(); }); }
+function limitConcurrency(items,limit,worker){ return new Promise((resolve,reject)=>{ let i=0,active=0,results=[]; const run=()=>{ while(active<limit && i<items.length){ const cur=items[i]; const idx=i; i++; active++; Promise.resolve(worker(cur,idx)).then(r=>results[idx]=r).catch(reject).finally(()=>{ active--; if(i>=items.length && active===0) resolve(results); else run(); }); } }; run(); }); }
 
 byId('mom-posts').onclick = async ()=>{
   try{
     const files=byId('mom-files').files; if(!files?.length) return alert('Select files first');
     const caption=byId('mom-caption').value.trim(); const tags=parseTags(byId('mom-tags').value); const link=byId('mom-link').value.trim()||null;
     const total=files.length; let done=0; const prog=byId('mom-progress'); prog.textContent=`Uploading 0/${total}…`;
-    await limitConcurrency(Array.from(files),3, async f=>{ const m=await postOneMomentFromFile(f,{caption,tags,link}); done++; prog.textContent=`Uploaded ${done}/${total}`; await prependToIndex(m); });
-    prog.textContent='Done ✓'; byId('mom-files').value=''; byId('mom-caption').value=''; byId('mom-tags').value=''; byId('mom-link').value='';
-    await loadFeed(); await loadVertical(); hide(composeModal); toast('Moments posted');
+    await limitConcurrency(Array.from(files),3, async f=>{ await postOneMomentFromFile(f,{caption,tags,link}); done++; prog.textContent=`Uploaded ${done}/${total}`; });
+    prog.textContent='Done ✓'; byId('mom-files').value=''; byId('mom-caption').value=''; byId('mom-tags').value=''; byId('mom-link').value=''; hide(byId('compose-modal')); toast('Posted');
   }catch(err){ alert(err.message); }
 };
 
-// ===== Stories (48h) + Viewer =====
+// ---------- Stories (smooth) ----------
 function storyChipHTML(user,firstStory,name){
   const media = firstStory.kind==='image'
     ? `<img src="${firstStory.media_url}" class="h-full w-full object-cover">`
     : `<video src="${firstStory.media_url}" class="h-full w-full object-cover" muted></video>`;
-  return `<button class="flex flex-col items-center gap-1" data-story-author="${user}">
+  return `<button class="flex flex-col items-center gap-1" data-story-author="${user}" data-key="${user}">
     <span class="block h-16 w-16 rounded-full story-ring overflow-hidden">${media}</span>
     <span class="text-[11px] max-w-24 truncate">${name||user}</span>
   </button>`;
@@ -559,36 +571,34 @@ async function postOneStoryFromFile(file){
 byId('story-files').onchange = async (e)=>{
   try{ const files=Array.from(e.target.files||[]); if(!files.length) return;
     toast(`Adding ${files.length} stor${files.length>1?'ies':'y'}…`);
-    await limitConcurrency(files,3, postOneStoryFromFile); e.target.value=''; await loadStories(); toast('Stories added');
+    await limitConcurrency(files,3, postOneStoryFromFile); e.target.value=''; await loadStories();
   }catch(err){ alert(err.message); }
 };
 
 async function listJsonIn(path){
   let items=[]; try{ const arr=await ghGet(path); items=Array.isArray(arr)? arr.filter(x=>x.type==='file' && x.name.endsWith('.json')):[]; }catch{}
-  const out=[]; for(const it of items){ try{ const j=await (await fetch(it.download_url,{cache:'no-store'})).json(); out.push(j);}catch{} } return out;
+  const out=[]; for(const it of items){ try{ const j=await fetchJSONWithCache(it.download_url); out.push(j);}catch{} } return out;
 }
 
 let STORY_GROUPS=[]; // [{author,name,stories:[]}]
 async function loadStories(){
-  const row=byId('stories-row'); row.innerHTML='';
+  const row=byId('stories-row');
   const stories=await listJsonIn('stories'); const now=Date.now();
   const live=stories.filter(s=> new Date(s.expires_at).getTime() > now).sort((a,b)=> new Date(a.created_at)-new Date(b.created_at));
   const byAuthor=new Map();
   for(const s of live){ if(!byAuthor.has(s.author)) byAuthor.set(s.author,[]); byAuthor.get(s.author).push(s); }
-  STORY_GROUPS=[]; for(const [author,arr] of byAuthor.entries()){ let prof=null; try{ prof=await (await fetch(rawURL(`profiles/${author}.json`))).json(); }catch{} STORY_GROUPS.push({author, name:prof?.name||author, stories:arr}); }
-  if(!STORY_GROUPS.length){ row.innerHTML=`<div class="text-sm text-black/60">No active stories.</div>`; return; }
-  row.innerHTML = STORY_GROUPS.map(g=> storyChipHTML(g.author, g.stories[g.stories.length-1], g.name)).join('');
+  STORY_GROUPS=[]; for(const [author,arr] of byAuthor.entries()){ let prof=null; try{ prof=await fetchJSONWithCache(rawURL(`profiles/${author}.json`)); }catch{} STORY_GROUPS.push({author, name:prof?.name||author, stories:arr}); }
+  const html = STORY_GROUPS.map(g=> storyChipHTML(g.author, g.stories[g.stories.length-1], g.name)).join('');
+  patchList(row, html, 'data-key');
 }
 
-// Viewer
-let svGroup=0, svIdx=0, svTimer=null, svVideo=null;
-const IMG_DURATION=6000;
+// viewer (smooth timer)
+let svGroup=0, svIdx=0, svTimer=null, svVideo=null; const IMG_DURATION=6000;
 function stopStoryTimer(){ if(svTimer){ clearTimeout(svTimer); svTimer=null; } if(svVideo){ try{svVideo.pause();}catch{} svVideo=null; } }
-function startStoryTimer(ms){ stopStoryTimer(); svTimer=setTimeout(()=> nextStory(), ms); animateProgress(ms); }
-function animateProgress(ms){ const segs=byId('sv-progress').querySelectorAll('.progress-seg>span'); const cur=segs[svIdx]; if(cur){ cur.style.transition=`width ${ms}ms linear`; requestAnimationFrame(()=> cur.style.width='100%'); } }
+function startStoryTimer(ms){ stopStoryTimer(); svTimer=setTimeout(()=> nextStory(), ms); const segs=byId('sv-progress').querySelectorAll('.progress-seg>span'); const cur=segs[svIdx]; if(cur){ cur.style.transition=`width ${ms}ms linear`; requestAnimationFrame(()=> cur.style.width='100%'); } }
 function renderStory(){
-  const g=STORY_GROUPS[svGroup]; if(!g) return hide(storiesViewer);
-  const s=g.stories[svIdx]; if(!s) return hide(storiesViewer);
+  const g=STORY_GROUPS[svGroup]; if(!g) return hide(byId('stories-viewer'));
+  const s=g.stories[svIdx]; if(!s) return hide(byId('stories-viewer'));
   byId('sv-header').innerHTML=`<div class="h-8 w-8 rounded-full bg-white/20 grid place-items-center text-xs">${g.name.slice(0,1)}</div><div>${g.name} <span class="text-white/60 text-xs">@${g.author}</span></div>`;
   byId('sv-progress').innerHTML = g.stories.map((_,i)=>`<div class="progress-seg"><span style="width:${i<svIdx?'100%':'0'}"></span></div>`).join('');
   const mediaHost=byId('sv-media'); mediaHost.innerHTML=''; const isVid=s.kind==='video';
@@ -599,54 +609,52 @@ function renderStory(){
   byId('sv-like-btn').onclick=async ()=>{ await toggleLike('stories', s.id); refreshEngagementUI('stories', s.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') }); };
   byId('sv-comment-send').onclick=async ()=>{ const input=byId('sv-comment-input'); const text=(input.value||'').trim(); if(!text) return; await addComment('stories', s.id, text); input.value=''; refreshEngagementUI('stories', s.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') }); };
 }
-function nextStory(){ const g=STORY_GROUPS[svGroup]; if(svIdx<g.stories.length-1){ svIdx++; renderStory(); } else if(svGroup<STORY_GROUPS.length-1){ svGroup++; svIdx=0; renderStory(); } else { hide(storiesViewer); stopStoryTimer(); } }
+function nextStory(){ const g=STORY_GROUPS[svGroup]; if(svIdx<g.stories.length-1){ svIdx++; renderStory(); } else if(svGroup<STORY_GROUPS.length-1){ svGroup++; svIdx=0; renderStory(); } else { hide(byId('stories-viewer')); stopStoryTimer(); } }
 function prevStory(){ if(svIdx>0){ svIdx--; renderStory(); } else if(svGroup>0){ svGroup--; svIdx=STORY_GROUPS[svGroup].stories.length-1; renderStory(); } }
 byId('sv-next').onclick=nextStory; byId('sv-prev').onclick=prevStory;
-byId('stories-row').addEventListener('click', (e)=>{ const btn=e.target.closest('[data-story-author]'); if(!btn) return; const author=btn.getAttribute('data-story-author'); svGroup=STORY_GROUPS.findIndex(g=>g.author===author); svIdx=0; show(storiesViewer); renderStory(); });
+byId('stories-row').addEventListener('click', (e)=>{ const btn=e.target.closest('[data-story-author]'); if(!btn) return; const author=btn.getAttribute('data-story-author'); svGroup=STORY_GROUPS.findIndex(g=>g.author===author); svIdx=0; show(byId('stories-viewer')); renderStory(); });
 
-// ===== Feed & Vertical (index + pagination) =====
+// ---------- Feed & vertical with smooth patching ----------
 const IDX={ moments:'indexes/moments.json' }; let momentsIndex=null, feedCursor=0, vertCursor=0;
 const PAGE_SIZE=10, VERT_PAGE=5;
 
-async function readRaw(path){ try{ return await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ return null; } }
+async function readRaw(path){ try{ return await fetchJSONWithCache(rawURL(path)); }catch{ return null; } }
 async function writeIndex(path,data,msg){ await upsertText(path, JSON.stringify(data,null,2), msg||'update index'); }
-
 async function loadMomentsIndex({force=false}={}){
-  if(!force){ if(momentsIndex) return momentsIndex; const cached=sessionStorage.getItem('mh:index:moments'); if(cached){ try{ momentsIndex=JSON.parse(cached); return momentsIndex;}catch{} } }
+  if(!force && momentsIndex) return momentsIndex;
   let idx=await readRaw(IDX.moments);
   if(!idx){
     let arr=[]; try{ arr=await ghGet('moments'); }catch{}
-    idx=[]; for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await (await fetch(it.download_url,{cache:'no-store'})).json(); idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' }); }catch{} } }
+    idx=[]; for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await fetchJSONWithCache(it.download_url); idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' }); }catch{} } }
     try{ await writeIndex(IDX.moments, idx, 'build moments index'); }catch{}
   }
   idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
-  momentsIndex=idx; try{ sessionStorage.setItem('mh:index:moments', JSON.stringify(idx)); }catch{} return idx;
-}
-async function prependToIndex(meta){
-  let idx=await loadMomentsIndex({force:true}) || []; idx.unshift({ id:meta.id, author:meta.author, kind:meta.kind, caption:meta.caption||'', tags:meta.tags||[], link:meta.link||null, media_url:meta.media_url, created_at:meta.created_at});
-  try{ await writeIndex(IDX.moments, JSON.stringify(idx), 'append moments index'); }catch{} sessionStorage.removeItem('mh:index:moments');
+  momentsIndex=idx; return idx;
 }
 
 async function renderFeedPage(reset=false){
   const host=byId('feed'); if(reset){ feedCursor=0; host.innerHTML=''; }
-  const idx=await loadMomentsIndex({force:false}); const slice=idx.slice(feedCursor, feedCursor+PAGE_SIZE);
-  if(slice.length===0 && feedCursor===0){ host.innerHTML=`<div class="text-sm text-black/60">No posts yet.</div>`; return; }
+  const idx=await loadMomentsIndex({force:false}); const slice=idx.slice(0, Math.min(idx.length, 30)); // show top 30, patch in place
   const authorMap=new Map();
-  for(const m of slice){
-    if(!authorMap.has(m.author)){ try{ const p=await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); }catch{ authorMap.set(m.author,null); } }
-    const wrap=document.createElement('div'); wrap.innerHTML=cardHTML(m, authorMap.get(m.author));
-    const el=wrap.firstElementChild; host.appendChild(el);
-    refreshEngagementUI('moments', m.id, { likeCountEl: el.querySelector('.like-count'), commentCountEl: el.querySelector('.comment-count') });
-  }
-  feedCursor += slice.length;
-  let moreBtn=document.getElementById('feed-more');
-  if(feedCursor < idx.length){ if(!moreBtn){ moreBtn=document.createElement('button'); moreBtn.id='feed-more'; moreBtn.className='w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm shadow-sm'; moreBtn.textContent='Load more'; moreBtn.onclick=()=>renderFeedPage(false); host.parentElement.appendChild(moreBtn);} }
-  else if(moreBtn){ moreBtn.remove(); }
+  const itemsHTML = await (async ()=>{
+    const parts=[];
+    for(const m of slice){
+      if(!authorMap.has(m.author)){ try{ const p=await readRaw(`profiles/${m.author}.json`); authorMap.set(m.author,p); }catch{ authorMap.set(m.author,null); } }
+      parts.push(cardHTML(m, authorMap.get(m.author)));
+    }
+    return parts.join('');
+  })();
+  patchList(host, itemsHTML, 'data-key');
+
+  // sync counts
+  [...host.querySelectorAll('[data-like-moment]')].forEach(async btn=>{
+    const art=btn.closest('[data-key]'); const id=btn.getAttribute('data-like-moment');
+    await refreshEngagementUI('moments', id, { likeCountEl: btn.querySelector('.like-count'), commentCountEl: art.querySelector('.comment-count') });
+  });
 }
-async function loadFeed(){ await renderFeedPage(true); }
 
 function verticalItemHTML(m, author){
-  return `<div class="rounded-2xl overflow-hidden border border-black/10 bg-black/90 text-white relative" style="scroll-snap-align:center">
+  return `<div class="rounded-2xl overflow-hidden border border-black/10 bg-black/90 text-white relative fade-enter fade-enter-active" data-key="${m.id}" style="scroll-snap-align:center">
     <div class="aspect-[9/16] w-full relative">
       ${m.kind==='video' ? `<video class="vitem absolute inset-0 h-full w-full object-cover" src="${m.media_url}" playsinline muted loop></video>` : `<img class="absolute inset-0 h-full w-full object-cover" src="${m.media_url}" alt="">`}
       <div class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0">
@@ -657,32 +665,29 @@ function verticalItemHTML(m, author){
     </div>
   </div>`;
 }
-async function renderVerticalPage(reset=false){
-  const host=byId('mom-vertical'); if(reset){ vertCursor=0; host.innerHTML=''; }
-  const idx=await loadMomentsIndex({force:false}); const chunk=idx.slice(vertCursor, vertCursor+VERT_PAGE);
-  const authorMap=new Map();
+async function loadVertical(){
+  const host=byId('mom-vertical'); const idx=await loadMomentsIndex({force:false}); const chunk=idx.slice(0, 12);
+  const authorMap=new Map(); const htmlParts=[];
   for(const m of chunk){
-    if(!authorMap.has(m.author)){ try{ const p=await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p);}catch{ authorMap.set(m.author,null);} }
-    host.insertAdjacentHTML('beforeend', verticalItemHTML(m, authorMap.get(m.author)));
+    if(!authorMap.has(m.author)){ try{ const p=await readRaw(`profiles/${m.author}.json`); authorMap.set(m.author,p);}catch{ authorMap.set(m.author,null);} }
+    htmlParts.push(verticalItemHTML(m, authorMap.get(m.author)));
   }
-  vertCursor += chunk.length;
+  patchList(host, htmlParts.join(''), 'data-key');
   const vids=[...host.querySelectorAll('.vitem')];
   if('IntersectionObserver' in window){
     const obs=new IntersectionObserver((entries)=> entries.forEach(en=>{ const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}); } else { v.pause(); } }), {threshold:[0,0.6,1]});
     vids.forEach(v=>obs.observe(v));
   } else vids.forEach(v=> v.play && v.play().catch(()=>{}));
 }
-async function loadVertical(){ await renderVerticalPage(true); }
-(function(){ const host=byId('mom-vertical'); host.addEventListener('scroll', ()=>{ if(host.scrollTop + host.clientHeight >= host.scrollHeight - 200){ renderVerticalPage(false); } }); document.addEventListener('keydown',(e)=>{ if(byId('tab-moments').classList.contains('hidden')) return; if(e.key.toLowerCase()==='j') host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}); if(e.key.toLowerCase()==='k') host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}); }); })();
 
-// Feed actions
+// feed actions (like & open viewer)
 byId('feed').addEventListener('click', async (e)=>{
   const likeBtn=e.target.closest('[data-like-moment]'); if(likeBtn){ const id=likeBtn.getAttribute('data-like-moment'); await toggleLike('moments', id); await refreshEngagementUI('moments', id, { likeCountEl: likeBtn.querySelector('.like-count'), commentCountEl: likeBtn.parentElement.querySelector('.comment-count') }); return; }
   const viewBtn=e.target.closest('[data-view]'); if(viewBtn){ openMomentViewer(viewBtn.getAttribute('data-view')); }
 });
 async function openMomentViewer(id){
   const idx=await loadMomentsIndex({force:false}); const m=idx.find(x=>x.id===id); if(!m) return alert('Moment not found');
-  let prof=null; try{ prof=await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); }catch{}
+  let prof=null; try{ prof=await readRaw(`profiles/${m.author}.json`); }catch{}
   byId('moment-author').innerHTML=`<div class="h-8 w-8 rounded-full bg-black/10 grid place-items-center text-xs">${(prof?.name||m.author).slice(0,1)}</div><div><div class="text-sm font-semibold">${prof?.name||m.author}</div><div class="text-[11px] text-black/60">@${m.author}</div></div>`;
   byId('moment-media').innerHTML = m.kind==='video' ? `<video src="${m.media_url}" class="max-h-[65svh] w-full object-contain" controls playsinline></video>` : `<img src="${m.media_url}" class="max-h-[65svh] w-full object-contain" />`;
   byId('moment-caption').textContent=m.caption||'';
@@ -690,58 +695,44 @@ async function openMomentViewer(id){
   await refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') });
   byId('moment-like-btn').onclick=async ()=>{ await toggleLike('moments', id); refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') }); };
   byId('moment-comment-send').onclick=async ()=>{ const i=byId('moment-comment-input'); const text=(i.value||'').trim(); if(!text) return; await addComment('moments', id, text); i.value=''; refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') }); };
-  show(momentModal);
+  show(byId('moment-modal'));
 }
 
-// ===== Auto Refresh every 4 seconds (soft) =====
-setInterval(async ()=>{
-  // Only when connected (token present) — keep session alive, no logout
-  if(!state.token) return;
+// ---------- Soft auto-refresh loop (no jank) ----------
+async function softRefresh(){
+  if(!state.token) return; // only after connect
   try{
-    // Refresh stories always (cheap)
-    loadStories();
-    // If feed tab visible, refresh feed top page
-    if(!byId('tab-feed').classList.contains('hidden')) await loadFeed();
-    // If moments tab visible, refresh vertical page
-    if(!byId('tab-moments').classList.contains('hidden')) await loadVertical();
-    // If DMs active and a thread open, refresh it
-    if(!byId('tab-dms').classList.contains('hidden')) { if(typeof renderDM==='function') renderDM(); }
-    // Refresh admin metrics quietly if admin tab open
-    if(!byId('tab-admin').classList.contains('hidden')) { if(typeof renderAdmin==='function') renderAdmin(); }
-  }catch(e){ /* ignore transient errors */ }
-}, 4000);
+    await Promise.allSettled([
+      loadStories(),
+      (async()=>{ if(!byId('tab-feed').classList.contains('hidden')) await renderFeedPage(false); })(),
+      (async()=>{ if(!byId('tab-moments').classList.contains('hidden')) await loadVertical(); })(),
+      (async()=>{ if(!byId('tab-dms').classList.contains('hidden') && typeof renderDM==='function') await renderDM(); })(),
+      (async()=>{ if(!byId('tab-admin').classList.contains('hidden') && typeof renderAdmin==='function') await renderAdmin(); })(),
+    ]);
+  }catch{}
+}
+setInterval(()=> raf(softRefresh), 4000);
 </script>
 <script>
-// ===== App Accounts (multi-user like IG) =====
+// ===== App Accounts =====
 const currentLogin = () => state.user?.login || null;
-
 function appBoxRender(){
   const box=byId('appacct-box'); const outBtn=byId('signOutBtn');
-  if(state.user){
-    box.innerHTML=`Signed in as <strong>@${state.user.login}</strong> (<span class="text-black/70">${state.user.name||state.user.login}</span>)`;
-    outBtn.classList.remove('hidden');
-  } else {
-    box.textContent='Not signed in to an app account.'; outBtn.classList.add('hidden');
-  }
+  if(state.user){ box.innerHTML=`Signed in as <strong>@${state.user.login}</strong> (<span class="text-black/70">${state.user.name||state.user.login}</span>)`; outBtn.classList.remove('hidden'); }
+  else { box.textContent='Not signed in to an app account.'; outBtn.classList.add('hidden'); }
   byId('pf-name').value = state.user?.name || '';
   byId('pf-handle').value = state.user?.handle || '';
 }
-
-async function restoreAppUser(){
-  const saved = sessionStorage.getItem('mh:appUser');
-  if(saved){ try{ const p=await (await fetch(rawURL(`profiles/${saved}.json`),{cache:'no-store'})).json(); state.user=p; }catch{} }
-  appBoxRender();
-}
+async function restoreAppUser(){ const saved=sessionStorage.getItem('mh:appUser'); if(saved){ try{ const p=await fetchJSONWithCache(rawURL(`profiles/${saved}.json`)); state.user=p; }catch{} } appBoxRender(); }
 
 async function sha256Hex(s){
   if(window.crypto?.subtle){ const enc=new TextEncoder(); const buf=await crypto.subtle.digest('SHA-256', enc.encode(s)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
   let h=0; for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return String(h);
 }
-
-byId('openSignInBtn').onclick=()=>show(signinModal);
-byId('closeSigninBtn').onclick=()=>hide(signinModal);
-byId('openRegisterBtn').onclick=()=>show(registerModal);
-byId('closeRegisterBtn').onclick=()=>hide(registerModal);
+byId('openSignInBtn').onclick=()=>show(byId('signin-modal'));
+byId('closeSigninBtn').onclick=()=>hide(byId('signin-modal'));
+byId('openRegisterBtn').onclick=()=>show(byId('register-modal'));
+byId('closeRegisterBtn').onclick=()=>hide(byId('register-modal'));
 byId('signOutBtn').onclick=()=>{ state.user=null; sessionStorage.removeItem('mh:appUser'); appBoxRender(); toast('Signed out'); };
 
 byId('rg-go').onclick = async ()=>{
@@ -749,80 +740,68 @@ byId('rg-go').onclick = async ()=>{
     if(!state.me) return alert('Connect to GitHub first');
     const login=byId('rg-login').value.trim(); const name=byId('rg-name').value.trim()||login; const handle=(byId('rg-handle').value.trim()||null); const pin=byId('rg-pin').value.trim();
     if(!login || !pin) return alert('Username & PIN required');
-    let exists=true; try{ await (await fetch(rawURL(`profiles/${login}.json`),{cache:'no-store'})).json(); }catch{ exists=false; }
+    let exists=true; try{ await fetchJSONWithCache(rawURL(`profiles/${login}.json`)); }catch{ exists=false; }
     if(exists) return alert('Username already exists');
     const pin_hash=await sha256Hex(pin);
     const prof={ login, name, handle, role:'user', status:'active', created_at:new Date().toISOString(), auth:{pin_hash} };
     await upsertText(`profiles/${login}.json`, JSON.stringify(prof,null,2), `register profile ${login}`);
-    state.user=prof; sessionStorage.setItem('mh:appUser', login); appBoxRender(); hide(registerModal); toast('Account created & signed in');
-    await loadPeople();
+    state.user=prof; sessionStorage.setItem('mh:appUser', login); appBoxRender(); hide(byId('register-modal')); toast('Account created & signed in'); await loadPeople();
   }catch(err){ alert(err.message); }
 };
-
 byId('si-go').onclick = async ()=>{
   try{
     if(!state.me) return alert('Connect to GitHub first');
     const login=byId('si-login').value.trim(); const pin=byId('si-pin').value.trim(); if(!login||!pin) return;
-    let prof=null; try{ prof=await (await fetch(rawURL(`profiles/${login}.json`),{cache:'no-store'})).json(); }catch{ }
+    let prof=null; try{ prof=await fetchJSONWithCache(rawURL(`profiles/${login}.json`)); }catch{}
     if(!prof?.auth?.pin_hash) return alert('Account not found or no PIN set');
     const pin_hash=await sha256Hex(pin); if(pin_hash!==prof.auth.pin_hash) return alert('Invalid PIN');
-    state.user=prof; sessionStorage.setItem('mh:appUser', login); appBoxRender(); hide(signinModal); toast('Signed in');
-    await loadPeople();
+    state.user=prof; sessionStorage.setItem('mh:appUser', login); appBoxRender(); hide(byId('signin-modal')); toast('Signed in'); await loadPeople();
   }catch(err){ alert(err.message); }
 };
-
-// Save profile edits for current app user
 byId('pf-save').onclick = async ()=>{
   try{
     if(!state.user) return alert('Sign in to an app account first');
-    const p=`profiles/${state.user.login}.json`; let prof=null; try{ prof=await (await fetch(rawURL(p),{cache:'no-store'})).json(); }catch{}
+    const p=`profiles/${state.user.login}.json`; let prof=null; try{ prof=await fetchJSONWithCache(rawURL(p)); }catch{}
     prof=prof||{login:state.user.login, role:'user', status:'active', created_at:new Date().toISOString()};
     prof.name = byId('pf-name').value.trim() || prof.name || state.user.login;
     prof.handle = byId('pf-handle').value.trim() || null;
     await upsertText(p, JSON.stringify(prof,null,2), `update profile ${state.user.login}`);
-    state.user=prof; appBoxRender(); toast('Profile saved');
-    await loadPeople();
+    state.user=prof; appBoxRender(); toast('Profile saved'); await loadPeople();
   }catch(err){ alert(err.message); }
 };
 
-// ===== DMs (show all profiles, delete own messages) =====
-let DM_OTHER=null;
-const pairKey=(a,b)=> [a,b].sort().join('__');
-
+// ===== DMs (smooth + delete) =====
+let DM_OTHER=null; const pairKey=(a,b)=> [a,b].sort().join('__');
 async function loadPeople(){
-  let list=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const p=await (await fetch(it.download_url,{cache:'no-store'})).json(); list.push(p);}catch{} } } }catch{}
+  let list=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const p=await fetchJSONWithCache(it.download_url); list.push(p);}catch{} } } }catch{}
   const q=(byId('dm-search').value||'').toLowerCase();
   list=list.filter(p=> [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q));
-  const host=byId('dm-people'); host.innerHTML='';
-  list.forEach(u=>{
-    const row=document.createElement('button'); row.className='w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center gap-2';
-    row.innerHTML=`<div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
-      <div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
-      <div class="text-[11px] text-black/60">@${u.login}</div></div>`;
-    row.onclick=()=>{ DM_OTHER=u; renderDM(); };
-    host.appendChild(row);
-  });
+  const host=byId('dm-people');
+  const html = list.map(u=>`<button class="w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center gap-2" data-key="${u.login}">
+    <div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
+    <div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div><div class="text-[11px] text-black/60">@${u.login}</div></div>
+  </button>`).join('');
+  patchList(host, html, 'data-key');
+  host.onclick = (e)=>{ const row=e.target.closest('[data-key]'); if(!row) return; const login=row.getAttribute('data-key'); const u=list.find(x=>x.login===login); DM_OTHER=u; renderDM(); };
 }
-byId('dm-search').addEventListener('input', loadPeople);
+byId('dm-search').addEventListener('input', ()=>loadPeople());
 
-async function readThread(a,b){ const key=pairKey(a,b); const path=`dms/${key}.json`; try{ return await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ return {key, messages:[]}; } }
+async function readThread(a,b){ const key=pairKey(a,b); const path=`dms/${key}.json`; try{ return await fetchJSONWithCache(rawURL(path)); }catch{ return {key, messages:[]}; } }
 async function writeThread(a,b,thread){ const key=pairKey(a,b); const path=`dms/${key}.json`; await upsertText(path, JSON.stringify(thread,null,2), `dm ${key}`); }
-
 async function renderDM(){
-  const me = currentLogin(); const hdr=byId('dm-header'); const log=byId('dm-log'); const send=byId('dm-send');
+  const me=currentLogin(); const hdr=byId('dm-header'); const log=byId('dm-log'); const send=byId('dm-send');
   if(!me || !DM_OTHER){ hdr.textContent='Pick a person to chat.'; log.innerHTML=''; send.disabled=true; return; }
-  hdr.textContent=`Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle||DM_OTHER.login})`;
-  send.disabled=false;
+  hdr.textContent=`Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle||DM_OTHER.login})`; send.disabled=false;
   const thread=await readThread(me, DM_OTHER.login);
-  log.innerHTML = (thread.messages||[]).map(m=>{
+  const html = (thread.messages||[]).map(m=>{
     const mine = m.from===me;
     const cls = mine? 'text-right':'';
-    return `<div class="mb-2 ${cls}">
+    return `<div class="mb-2 ${cls}" data-key="${m.id}">
       <button class="inline-block rounded-xl px-3 py-2 text-sm ${mine?'bg-sky-100':'bg-white/70'}" data-delmsg="${m.id}">${m.text}</button>
       <div class="text-[10px] text-black/50">${new Date(m.ts).toLocaleString()} • ${m.from}</div>
     </div>`;
   }).join('');
-  log.scrollTop=log.scrollHeight;
+  patchList(log, html, 'data-key'); log.scrollTop=log.scrollHeight;
 
   log.onclick = async (e)=>{
     const btn=e.target.closest('[data-delmsg]'); if(!btn) return;
@@ -835,7 +814,6 @@ async function renderDM(){
     await renderDM();
   };
 }
-
 byId('dm-send').onclick = async ()=>{
   const me=currentLogin(); if(!me || !DM_OTHER) return alert('Sign into an app account and pick someone');
   const input=byId('dm-msg'); const text=(input.value||'').trim(); if(!text) return;
@@ -844,47 +822,51 @@ byId('dm-send').onclick = async ()=>{
   await writeThread(me, DM_OTHER.login, thread); input.value=''; await renderDM();
 };
 
-// ===== Admin helpers =====
-byId('adm-init').onclick = async ()=>{ if(!state.me) return alert('Connect first'); await ensureDirs(); toast('Initialized folders'); };
-byId('adm-addme').onclick = async ()=>{ if(!state.me) return alert('Connect first'); let arr=[]; try{ arr=await (await fetch(rawURL('admins.json'))).json(); }catch{} if(!Array.isArray(arr)) arr=[]; if(!arr.includes(state.me.login)) arr.push(state.me.login); await upsertText('admins.json', JSON.stringify(arr,null,2), 'update admins'); await loadAdminStatus(); toast('You are admin now'); };
+// ===== Admin =====
+byId('adm-init').onclick = async ()=>{ if(!state.me) return alert('Connect first'); await ensureDirs(); toast('Initialized'); };
+byId('adm-addme').onclick = async ()=>{ if(!state.me) return alert('Connect first'); let arr=[]; try{ arr=await fetchJSONWithCache(rawURL('admins.json')); }catch{} if(!Array.isArray(arr)) arr=[]; if(!arr.includes(state.me.login)) arr.push(state.me.login); await upsertText('admins.json', JSON.stringify(arr,null,2), 'update admins'); await loadAdminStatus(); toast('Admin added'); };
 
 async function renderAdmin(){
   const showBtn=(id,showit)=> byId(id).classList.toggle('hidden', !showit);
   showBtn('adminTabBtn', state.isAdmin); showBtn('adminTabBtnMobile', state.isAdmin);
   if(!state.isAdmin) return;
-  let users=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ users.push(await (await fetch(it.download_url,{cache:'no-store'})).json()); }catch{} } } }catch{}
+  let users=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ users.push(await fetchJSONWithCache(it.download_url)); }catch{} } } }catch{}
   let moments=0; try{ const arr=await ghGet('moments'); moments=Array.isArray(arr)? arr.length:0; }catch{}
-  let stories=0; try{ const arr=await ghGet('stories'); const now=Date.now(); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const s=await (await fetch(it.download_url,{cache:'no-store'})).json(); if(new Date(s.expires_at).getTime()>now) stories++; }catch{} } } }catch{}
+  let stories=0; try{ const arr=await ghGet('stories'); const now=Date.now(); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const s=await fetchJSONWithCache(it.download_url); if(new Date(s.expires_at).getTime()>now) stories++; }catch{} } } }catch{}
   byId('adm-metrics').innerHTML=`<div>Total users: ${users.length}</div><div>Moments: ${moments}</div><div>Stories (active): ${stories}</div>`;
-  const q=(byId('adm-search').value||'').toLowerCase(); const host=byId('adm-users'); host.innerHTML='';
-  users.filter(u=>[u.name,u.handle,u.login].join(' ').toLowerCase().includes(q)).forEach(u=>{
-    const row=document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between';
-    row.innerHTML=`<div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div><div class="text-xs text-black/60">@${u.login} • ${u.role||'user'} • ${u.status||'active'}</div></div>
-      <div class="flex gap-2"><button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="role" data-id="${u.login}">${u.role==='admin'?'Demote':'Promote'}</button>
-      <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="suspend" data-id="${u.login}">${u.status==='suspended'?'Unsuspend':'Suspend'}</button></div>`;
-    host.appendChild(row);
-  });
-  host.onclick = async (e)=>{ const btn=e.target.closest('[data-act]'); if(!btn) return; const login=btn.dataset.id; const act=btn.dataset.act; const p=`profiles/${login}.json`; let prof=null; try{ prof=await (await fetch(rawURL(p),{cache:'no-store'})).json(); }catch{} if(!prof) return alert('Profile missing'); if(act==='role') prof.role=(prof.role==='admin'?'user':'admin'); if(act==='suspend') prof.status=(prof.status==='suspended'?'active':'suspended'); await upsertText(p, JSON.stringify(prof,null,2), `admin update ${login}`); await renderAdmin(); };
+  const q=(byId('adm-search').value||'').toLowerCase(); const host=byId('adm-users');
+  const html = users.filter(u=>[u.name,u.handle,u.login].join(' ').toLowerCase().includes(q)).map(u=>`
+    <div class="rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between" data-key="${u.login}">
+      <div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div><div class="text-xs text-black/60">@${u.login} • ${u.role||'user'} • ${u.status||'active'}</div></div>
+      <div class="flex gap-2">
+        <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="role" data-id="${u.login}">${u.role==='admin'?'Demote':'Promote'}</button>
+        <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="suspend" data-id="${u.login}">${u.status==='suspended'?'Unsuspend':'Suspend'}</button>
+      </div>
+    </div>`).join('');
+  patchList(host, html, 'data-key');
+  host.onclick = async (e)=>{ const btn=e.target.closest('[data-act]'); if(!btn) return; const login=btn.dataset.id; const act=btn.dataset.act; const p=`profiles/${login}.json`; let prof=null; try{ prof=await fetchJSONWithCache(rawURL(p)); }catch{} if(!prof) return alert('Profile missing'); if(act==='role') prof.role=(prof.role==='admin'?'user':'admin'); if(act==='suspend') prof.status=(prof.status==='suspended'?'active':'suspended'); await upsertText(p, JSON.stringify(prof,null,2), `admin update ${login}`); await renderAdmin(); };
   byId('adm-search').oninput=renderAdmin;
 }
 byId('btn-rebuild-indexes').onclick = async ()=>{ if(!state.isAdmin) return alert('Admins only');
-  let idx=[]; try{ const arr=await ghGet('moments'); for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await (await fetch(it.download_url,{cache:'no-store'})).json(); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{} } } }catch{}
-  idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); await upsertText(IDX.moments, JSON.stringify(idx,null,2), 'rebuild moments index'); sessionStorage.removeItem('mh:index:moments'); toast('Indexes rebuilt'); };
+  let idx=[]; try{ const arr=await ghGet('moments'); for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await fetchJSONWithCache(it.download_url); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{} } } }catch{}
+  idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); await upsertText('indexes/moments.json', JSON.stringify(idx,null,2), 'rebuild moments index'); toast('Indexes rebuilt'); };
 
-// ===== Studio Pro (batch posting with per-line captions) =====
+// ===== Studio Pro =====
 byId('studio-run').onclick = async ()=>{
   try{
     if(!currentLogin()) return alert('Sign in to an app account first');
     const files=byId('studio-files').files; if(!files?.length) return alert('Select files');
-    const caps=(byId('studio-captions').value||'').split('\n'); const tags=parseTags(byId('studio-tags').value);
+    const caps=(byId('studio-captions').value||'').split('\n'); const tags=(byId('studio-tags').value||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean);
     const total=files.length; let done=0; const st=byId('studio-status'); st.textContent=`Posting 0/${total}…`;
-    await limitConcurrency(Array.from(files),3, async (f,idx)=>{ const caption=caps[idx]?.trim()||''; const m=await postOneMomentFromFile(f,{caption,tags,link:null}); await prependToIndex(m); done++; st.textContent=`Posted ${done}/${total}`; });
-    st.textContent='Batch complete ✓'; await loadFeed(); await loadVertical(); toast('Studio batch posted');
+    const limit=3;
+    const run=async (file,idx)=>{ const caption=caps[idx]?.trim()||''; const kind=(file.type||'').startsWith('video')?'video':'image'; const media_url=await uploadMedia(file); const id=`${Date.now()}_${Math.random().toString(36).slice(2)}`; const meta={id,author:currentLogin(),kind,caption,tags,link:null,media_url,created_at:new Date().toISOString()}; await upsertText(`moments/${id}.json`, JSON.stringify(meta,null,2), `post moment ${id}`); momentsIndex?.unshift?.(meta); renderFeedPage(true); done++; st.textContent=`Posted ${done}/${total}`; };
+    const arr=[...files]; for(let i=0;i<arr.length;i+=limit){ await Promise.all(arr.slice(i,i+limit).map((f,j)=> run(f, i+j))); await sleep(50); }
+    st.textContent='Batch complete ✓'; toast('Studio batch posted');
   }catch(err){ alert(err.message); }
 };
 
-// ===== Boot =====
-(async ()=>{ /* ready */ })();
+// boot
+(async ()=>{})();
 </script>
 </body>
 </html>
