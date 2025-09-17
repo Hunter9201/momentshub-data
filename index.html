@@ -18,7 +18,6 @@
     .no-scrollbar::-webkit-scrollbar{display:none}
     .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
     .safe-bottom{padding-bottom:env(safe-area-inset-bottom)}
-    /* Stories viewer progress */
     .progress-bar{display:flex;gap:.25rem}
     .progress-seg{flex:1;height:3px;background:rgba(255,255,255,.35);border-radius:999px;overflow:hidden}
     .progress-seg>span{display:block;height:100%;width:0;background:white}
@@ -37,7 +36,6 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <!-- Desktop tabs -->
           <nav class="hidden sm:flex flex-wrap gap-2">
             <button data-tab="feed" class="tab-btn rounded-full bg-white px-3 py-1 text-xs font-semibold shadow">Feed</button>
             <button data-tab="moments" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Moments</button>
@@ -64,7 +62,10 @@
   <!-- STATUS BAR -->
   <div class="bg-amber-50 border-b border-amber-200">
     <div class="mx-auto max-w-6xl px-4 py-2 text-[12px] text-amber-900 flex items-center justify-between gap-3">
-      <div id="conn-status" class="truncate">Not connected. Tap <strong>Connect</strong> and use a fine-grained token.</div>
+      <div id="conn-status" class="truncate">
+        Not connected. Tap <strong>Connect</strong> and paste your PAT.
+        (Using <code>hunter9201/momentshub-data@main</code>)
+      </div>
       <div class="hidden sm:block text-black/60"><em>Token stays in-memory only.</em></div>
     </div>
   </div>
@@ -72,7 +73,6 @@
   <main class="mx-auto max-w-6xl px-4 py-6 space-y-8 pb-32 md:pb-8">
     <!-- FEED -->
     <section id="tab-feed" class="space-y-6">
-      <!-- Toolbar (Compose, Story, Studio Pro) -->
       <div class="flex flex-wrap gap-2 justify-end">
         <button id="openComposeBtn" class="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm">➕ Moment</button>
         <label class="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm cursor-pointer">
@@ -82,7 +82,6 @@
         <button id="openStudioBtn" class="rounded-full border border-fuchsia-200 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm">🎬 Studio Pro</button>
       </div>
 
-      <!-- Stories row -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between gap-2">
           <div class="text-xs uppercase tracking-widest text-black/50">Stories (48-hour)</div>
@@ -91,7 +90,7 @@
         <div id="stories-row" class="mt-3 flex gap-3 overflow-x-auto pb-2 no-scrollbar"></div>
       </div>
 
-      <!-- IG-style feed: single column -->
+      <!-- IG-style feed (single column) -->
       <div id="feed" class="grid grid-cols-1 gap-4"></div>
     </section>
 
@@ -131,7 +130,6 @@
     <!-- ACCOUNT -->
     <section id="tab-account" class="hidden space-y-6">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <!-- App Account -->
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
           <div class="text-xs uppercase tracking-widest text-black/50">App Account</div>
           <div id="appacct-box" class="mt-3 text-sm text-black/70">Not signed in to an app account.</div>
@@ -141,7 +139,6 @@
             <button id="signOutBtn" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm hidden">Sign out</button>
           </div>
         </div>
-        <!-- Profile editor -->
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card lg:col-span-2">
           <div class="text-xs uppercase tracking-widest text-black/50">Profile</div>
           <div class="mt-3 grid gap-2 text-sm">
@@ -153,14 +150,12 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- GitHub identity (for commits) -->
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
           <div class="text-xs uppercase tracking-widest text-black/50">GitHub Identity</div>
           <div id="profile-box" class="mt-3 text-sm">
-            <div class="text-black/60">Connect with the button in the header (used to write to repo).</div>
+            <div class="text-black/60">Used to write to the repo.</div>
           </div>
         </div>
-        <!-- Admin -->
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card md:col-span-2">
           <div class="text-xs uppercase tracking-widest text-black/50">Admin Setup</div>
           <div class="mt-3 text-sm">
@@ -206,7 +201,7 @@
 
   <!-- MODALS -->
 
-  <!-- GitHub login -->
+  <!-- GitHub PAT only -->
   <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
     <div class="w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between">
@@ -214,10 +209,10 @@
         <button id="closeLoginBtn" class="text-black/50">✕</button>
       </div>
       <div class="mt-3 grid gap-2 text-sm">
-        <input id="gh-owner" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Repo owner (GitHub username)">
-        <input id="gh-repo" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Repo name (e.g., momentshub-data)">
-        <input id="gh-branch" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" value="main" placeholder="Branch (e.g., main)">
-        <input id="gh-token" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="GitHub PAT (repo:contents) — NOT SAVED" type="password">
+        <div class="rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[12px]">
+          Using <code>hunter9201/momentshub-data@main</code>
+        </div>
+        <input id="gh-token" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="GitHub PAT (contents: read/write)" type="password">
         <button id="gh-connect" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Connect</button>
         <div id="gh-msg" class="text-[11px] text-black/60">Token is only kept in memory for this tab.</div>
       </div>
@@ -315,7 +310,6 @@
         <input id="si-login" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Username (profile login)">
         <input id="si-pin" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" type="password" placeholder="PIN">
         <button id="si-go" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Sign in</button>
-        <div class="text-[11px] text-black/60">You must be connected to GitHub to read/write profiles.</div>
       </div>
     </div>
   </div>
@@ -333,7 +327,6 @@
         <input id="rg-handle" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Handle (optional)">
         <input id="rg-pin" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" type="password" placeholder="PIN (4-8 digits)">
         <button id="rg-go" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Create Account</button>
-        <div class="text-[11px] text-black/60">Stores your profile in <code>profiles/&lt;username&gt;.json</code>.</div>
       </div>
     </div>
   </div>
@@ -368,7 +361,15 @@ const modal = byId('modal'), composeModal = byId('compose-modal'),
       signinModal = byId('signin-modal'), registerModal = byId('register-modal'),
       studioModal = byId('studio-modal');
 
-const state = { owner:'', repo:'', branch:'main', token:'', me:null, isAdmin:false, user:null };
+const state = {
+  owner: 'hunter9201',
+  repo: 'momentshub-data',
+  branch: 'main',
+  token: '',
+  me: null,
+  isAdmin: false,
+  user: null
+};
 
 const show = el => el.classList.remove('hidden');
 const hide = el => el.classList.add('hidden');
@@ -380,7 +381,6 @@ const updateActiveTabs = (active)=> document.querySelectorAll('.tab-btn').forEac
   const on = btn.dataset.tab===active;
   btn.classList.toggle('bg-white', on); btn.classList.toggle('shadow', on); btn.classList.toggle('text-black/70', !on);
 });
-
 document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
 switchTab('feed');
 
@@ -390,33 +390,55 @@ byId('openComposeBtn').onclick=()=>show(composeModal); byId('closeComposeBtn').o
 byId('closeMomentBtn').onclick=()=>hide(momentModal);
 byId('sv-close').onclick=()=>{ stopStoryTimer(); hide(storiesViewer); };
 storiesViewer.addEventListener('click', (e)=>{ if(e.target===storiesViewer){ stopStoryTimer(); hide(storiesViewer);} });
-
 byId('fabCompose').onclick=()=>show(composeModal);
 byId('fabStory').onclick=()=> byId('story-files').click();
 byId('fabStudio').onclick=()=>show(studioModal);
 byId('openStudioBtn').onclick=()=>show(studioModal);
 byId('closeStudioBtn').onclick=()=>hide(studioModal);
 
-// ===== GitHub Client (no backend) =====
+// ===== GitHub Client (fixed segment encoding) =====
 const GH_API='https://api.github.com';
+const encodePath = (p)=> p.split('/').map(encodeURIComponent).join('/');
 const rawURL=(p)=>`https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
 
 async function gh(method, url, body){
   const res = await fetch(url, {method, headers:{
-    'Accept':'application/vnd.github+json', ...(state.token? {'Authorization':'Bearer '+state.token}:{}) ,'Content-Type':'application/json'
+    'Accept':'application/vnd.github+json',
+    ...(state.token? {'Authorization':'Bearer '+state.token}:{}) ,'Content-Type':'application/json'
   }, body: body? JSON.stringify(body): undefined});
   if(!res.ok){ const t=await res.text(); throw new Error(`${res.status}: ${t}`); }
   return res.json();
 }
-async function ghGet(path){ return gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`); }
+async function ghGet(path){
+  const url = `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(state.branch)}`;
+  return gh('GET', url);
+}
 async function ghGetSha(path){ try{ const j=await ghGet(path); return j.sha; }catch{return null;} }
-function bufToBase64(buf){ let binary=''; const bytes=new Uint8Array(buf), chunk=0x8000; for(let i=0;i<bytes.length;i+=chunk){ binary+=String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); } return btoa(binary); }
-async function upsertText(path, text, message){ const sha=await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {message:message||`update ${path}`, content:btoa(unescape(encodeURIComponent(text))), branch:state.branch, ...(sha?{sha}:{})}); }
-async function upsertBinary(path,file,message){ const buf=await file.arrayBuffer(); const content=bufToBase64(buf); const sha=await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {message:message||`upload ${path}`, content, branch:state.branch, ...(sha?{sha}:{})}); }
-async function ensureDirs(){ const mk=async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`);}catch{} }; await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media'); await mk('dms'); await mk('indexes'); await mk('engagement/moments'); await mk('engagement/stories'); }
+async function upsertText(path, text, message){
+  const sha = await ghGetSha(path);
+  const url = `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}`;
+  return gh('PUT', url, {
+    message: message || `update ${path}`,
+    content: btoa(unescape(encodeURIComponent(text))),
+    branch: state.branch,
+    ...(sha?{sha}:{})
+  });
+}
+async function upsertBinary(path,file,message){
+  const buf=await file.arrayBuffer(); const bytes=new Uint8Array(buf); let binary='';
+  for(let i=0;i<bytes.length;i+=0x8000){ binary+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); }
+  const content=btoa(binary);
+  const sha=await ghGetSha(path);
+  const url = `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodePath(path)}`;
+  return gh('PUT', url, { message: message||`upload ${path}`, content, branch: state.branch, ...(sha?{sha}:{}) });
+}
+async function ensureDirs(){ const mk=async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`);}catch{} };
+  await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media'); await mk('dms'); await mk('indexes'); await mk('engagement/moments'); await mk('engagement/stories');
+}
 
+// ===== Connect (PAT only, defaults for owner/repo/branch) =====
 byId('gh-connect').onclick = async ()=>{
-  state.owner=byId('gh-owner').value.trim(); state.repo=byId('gh-repo').value.trim(); state.branch=(byId('gh-branch').value.trim()||'main'); state.token=byId('gh-token').value.trim();
+  state.token = byId('gh-token').value.trim();
   const msg=byId('gh-msg');
   try{
     const ures=await fetch(`${GH_API}/user`,{headers: state.token? {Authorization:'Bearer '+state.token}:{}}); if(!ures.ok) throw new Error('Invalid token or network');
@@ -426,7 +448,7 @@ byId('gh-connect').onclick = async ()=>{
     await ensureDirs(); await ensureProfile(me.login); await loadAdminStatus();
     await Promise.all([loadFeed(), loadStories(), loadVertical(), loadPeople(), renderProfileBox(), renderAdmin(), restoreAppUser()]);
     toast('Connected to GitHub');
-  }catch(err){ msg.textContent=err.message; setStatus('Not connected. Check your token/repo.'); }
+  }catch(err){ msg.textContent=err.message; setStatus('Not connected. Check your token.'); }
 };
 
 async function ensureProfile(login){
@@ -440,7 +462,6 @@ async function loadAdminStatus(){
     byId('adminTabBtnMobile').classList.toggle('hidden', !state.isAdmin);
   }catch{ byId('adminTabBtn').classList.add('hidden'); byId('adminTabBtnMobile').classList.add('hidden'); state.isAdmin=false; }
 }
-
 async function renderProfileBox(){
   const box=byId('profile-box'); if(!state.me){ box.innerHTML=`<div class="text-black/60">Not connected.</div>`; return; }
   const ppath=`profiles/${state.me.login}.json`; let prof=null; try{ prof=await (await fetch(rawURL(ppath))).json(); }catch{}
@@ -460,9 +481,8 @@ async function addComment(kind,id,text){ if(!currentLogin()) return alert('Sign 
 function renderComments(list){ return (list||[]).slice(-150).map(c=>`<div class="rounded-xl bg-black/5 p-2"><div class="text-[11px] text-black/60">@${c.from} • ${new Date(c.ts).toLocaleString()}</div><div class="text-sm">${c.text}</div></div>`).join(''); }
 async function refreshEngagementUI(kind,id,{likeCountEl, commentCountEl, commentsHost}){ const data=await readEngagement(kind,id); if(likeCountEl) likeCountEl.textContent=data.likes?.length||0; if(commentCountEl) commentCountEl.textContent=data.comments?.length||0; if(commentsHost) commentsHost.innerHTML=renderComments(data.comments); }
 
-// ===== Moments (IG-style single column) =====
-function cardHTML(m, author, counts={likes:0,comments:0}){
-  // IG layout: media first, then meta
+// ===== Moments (IG-style) =====
+function cardHTML(m, author){
   const media = m.kind==='video'
     ? `<video class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" muted playsinline loop></video>`
     : `<img class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" alt="">`;
@@ -477,8 +497,8 @@ function cardHTML(m, author, counts={likes:0,comments:0}){
     </header>
     <div class="mb-2">${media}</div>
     <div class="flex items-center gap-3 text-sm mb-2">
-      <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-like-moment="${m.id}">❤️ <span class="like-count">${counts.likes||0}</span></button>
-      <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-view="${m.id}">💬 <span class="comment-count">${counts.comments||0}</span></button>
+      <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-like-moment="${m.id}">❤️ <span class="like-count">0</span></button>
+      <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-view="${m.id}">💬 <span class="comment-count">0</span></button>
     </div>
     <div class="text-sm"><span class="font-semibold">${author?.name||m.author}</span> ${m.caption||''}</div>
     ${ (m.tags?.length? `<div class="mt-1 text-xs text-black/60">${m.tags.map(t=>'#'+t).join(' ')}</div>`:'') }
@@ -545,7 +565,7 @@ byId('story-files').onchange = async (e)=>{
 
 async function listJsonIn(path){
   let items=[]; try{ const arr=await ghGet(path); items=Array.isArray(arr)? arr.filter(x=>x.type==='file' && x.name.endsWith('.json')):[]; }catch{}
-  const out=[]; for(const it of items){ try{ const j=await (await fetch(it.download_url)).json(); out.push(j);}catch{} } return out;
+  const out=[]; for(const it of items){ try{ const j=await (await fetch(it.download_url,{cache:'no-store'})).json(); out.push(j);}catch{} } return out;
 }
 
 let STORY_GROUPS=[]; // [{author,name,stories:[]}]
@@ -596,7 +616,7 @@ async function loadMomentsIndex({force=false}={}){
   let idx=await readRaw(IDX.moments);
   if(!idx){
     let arr=[]; try{ arr=await ghGet('moments'); }catch{}
-    idx=[]; for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' }); }catch{} } }
+    idx=[]; for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await (await fetch(it.download_url,{cache:'no-store'})).json(); idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' }); }catch{} } }
     try{ await writeIndex(IDX.moments, idx, 'build moments index'); }catch{}
   }
   idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
@@ -604,7 +624,7 @@ async function loadMomentsIndex({force=false}={}){
 }
 async function prependToIndex(meta){
   let idx=await loadMomentsIndex({force:true}) || []; idx.unshift({ id:meta.id, author:meta.author, kind:meta.kind, caption:meta.caption||'', tags:meta.tags||[], link:meta.link||null, media_url:meta.media_url, created_at:meta.created_at});
-  try{ await writeIndex(IDX.moments, idx, 'append moments index'); }catch{} sessionStorage.removeItem('mh:index:moments');
+  try{ await writeIndex(IDX.moments, JSON.stringify(idx), 'append moments index'); }catch{} sessionStorage.removeItem('mh:index:moments');
 }
 
 async function renderFeedPage(reset=false){
@@ -616,7 +636,6 @@ async function renderFeedPage(reset=false){
     if(!authorMap.has(m.author)){ try{ const p=await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); }catch{ authorMap.set(m.author,null); } }
     const wrap=document.createElement('div'); wrap.innerHTML=cardHTML(m, authorMap.get(m.author));
     const el=wrap.firstElementChild; host.appendChild(el);
-    // counts
     refreshEngagementUI('moments', m.id, { likeCountEl: el.querySelector('.like-count'), commentCountEl: el.querySelector('.comment-count') });
   }
   feedCursor += slice.length;
@@ -673,6 +692,24 @@ async function openMomentViewer(id){
   byId('moment-comment-send').onclick=async ()=>{ const i=byId('moment-comment-input'); const text=(i.value||'').trim(); if(!text) return; await addComment('moments', id, text); i.value=''; refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') }); };
   show(momentModal);
 }
+
+// ===== Auto Refresh every 4 seconds (soft) =====
+setInterval(async ()=>{
+  // Only when connected (token present) — keep session alive, no logout
+  if(!state.token) return;
+  try{
+    // Refresh stories always (cheap)
+    loadStories();
+    // If feed tab visible, refresh feed top page
+    if(!byId('tab-feed').classList.contains('hidden')) await loadFeed();
+    // If moments tab visible, refresh vertical page
+    if(!byId('tab-moments').classList.contains('hidden')) await loadVertical();
+    // If DMs active and a thread open, refresh it
+    if(!byId('tab-dms').classList.contains('hidden')) { if(typeof renderDM==='function') renderDM(); }
+    // Refresh admin metrics quietly if admin tab open
+    if(!byId('tab-admin').classList.contains('hidden')) { if(typeof renderAdmin==='function') renderAdmin(); }
+  }catch(e){ /* ignore transient errors */ }
+}, 4000);
 </script>
 <script>
 // ===== App Accounts (multi-user like IG) =====
@@ -686,7 +723,6 @@ function appBoxRender(){
   } else {
     box.textContent='Not signed in to an app account.'; outBtn.classList.add('hidden');
   }
-  // bind profile editor to current app user
   byId('pf-name').value = state.user?.name || '';
   byId('pf-handle').value = state.user?.handle || '';
 }
@@ -699,7 +735,6 @@ async function restoreAppUser(){
 
 async function sha256Hex(s){
   if(window.crypto?.subtle){ const enc=new TextEncoder(); const buf=await crypto.subtle.digest('SHA-256', enc.encode(s)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
-  // fallback (weak)
   let h=0; for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return String(h);
 }
 
@@ -714,14 +749,13 @@ byId('rg-go').onclick = async ()=>{
     if(!state.me) return alert('Connect to GitHub first');
     const login=byId('rg-login').value.trim(); const name=byId('rg-name').value.trim()||login; const handle=(byId('rg-handle').value.trim()||null); const pin=byId('rg-pin').value.trim();
     if(!login || !pin) return alert('Username & PIN required');
-    // ensure not exists
     let exists=true; try{ await (await fetch(rawURL(`profiles/${login}.json`),{cache:'no-store'})).json(); }catch{ exists=false; }
     if(exists) return alert('Username already exists');
     const pin_hash=await sha256Hex(pin);
     const prof={ login, name, handle, role:'user', status:'active', created_at:new Date().toISOString(), auth:{pin_hash} };
     await upsertText(`profiles/${login}.json`, JSON.stringify(prof,null,2), `register profile ${login}`);
     state.user=prof; sessionStorage.setItem('mh:appUser', login); appBoxRender(); hide(registerModal); toast('Account created & signed in');
-    await loadPeople(); // refresh DM list
+    await loadPeople();
   }catch(err){ alert(err.message); }
 };
 
@@ -756,7 +790,7 @@ let DM_OTHER=null;
 const pairKey=(a,b)=> [a,b].sort().join('__');
 
 async function loadPeople(){
-  let list=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const p=await (await fetch(it.download_url)).json(); list.push(p);}catch{} } } }catch{}
+  let list=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const p=await (await fetch(it.download_url,{cache:'no-store'})).json(); list.push(p);}catch{} } } }catch{}
   const q=(byId('dm-search').value||'').toLowerCase();
   list=list.filter(p=> [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q));
   const host=byId('dm-people'); host.innerHTML='';
@@ -790,7 +824,6 @@ async function renderDM(){
   }).join('');
   log.scrollTop=log.scrollHeight;
 
-  // delete on tap (own messages or admin)
   log.onclick = async (e)=>{
     const btn=e.target.closest('[data-delmsg]'); if(!btn) return;
     const id=btn.getAttribute('data-delmsg');
@@ -811,7 +844,7 @@ byId('dm-send').onclick = async ()=>{
   await writeThread(me, DM_OTHER.login, thread); input.value=''; await renderDM();
 };
 
-// ===== Admin helpers (unchanged behavior) =====
+// ===== Admin helpers =====
 byId('adm-init').onclick = async ()=>{ if(!state.me) return alert('Connect first'); await ensureDirs(); toast('Initialized folders'); };
 byId('adm-addme').onclick = async ()=>{ if(!state.me) return alert('Connect first'); let arr=[]; try{ arr=await (await fetch(rawURL('admins.json'))).json(); }catch{} if(!Array.isArray(arr)) arr=[]; if(!arr.includes(state.me.login)) arr.push(state.me.login); await upsertText('admins.json', JSON.stringify(arr,null,2), 'update admins'); await loadAdminStatus(); toast('You are admin now'); };
 
@@ -819,9 +852,9 @@ async function renderAdmin(){
   const showBtn=(id,showit)=> byId(id).classList.toggle('hidden', !showit);
   showBtn('adminTabBtn', state.isAdmin); showBtn('adminTabBtnMobile', state.isAdmin);
   if(!state.isAdmin) return;
-  let users=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ users.push(await (await fetch(it.download_url)).json()); }catch{} } } }catch{}
+  let users=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ users.push(await (await fetch(it.download_url,{cache:'no-store'})).json()); }catch{} } } }catch{}
   let moments=0; try{ const arr=await ghGet('moments'); moments=Array.isArray(arr)? arr.length:0; }catch{}
-  let stories=0; try{ const arr=await ghGet('stories'); const now=Date.now(); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const s=await (await fetch(it.download_url)).json(); if(new Date(s.expires_at).getTime()>now) stories++; }catch{} } } }catch{}
+  let stories=0; try{ const arr=await ghGet('stories'); const now=Date.now(); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const s=await (await fetch(it.download_url,{cache:'no-store'})).json(); if(new Date(s.expires_at).getTime()>now) stories++; }catch{} } } }catch{}
   byId('adm-metrics').innerHTML=`<div>Total users: ${users.length}</div><div>Moments: ${moments}</div><div>Stories (active): ${stories}</div>`;
   const q=(byId('adm-search').value||'').toLowerCase(); const host=byId('adm-users'); host.innerHTML='';
   users.filter(u=>[u.name,u.handle,u.login].join(' ').toLowerCase().includes(q)).forEach(u=>{
@@ -831,11 +864,11 @@ async function renderAdmin(){
       <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="suspend" data-id="${u.login}">${u.status==='suspended'?'Unsuspend':'Suspend'}</button></div>`;
     host.appendChild(row);
   });
-  host.onclick = async (e)=>{ const btn=e.target.closest('[data-act]'); if(!btn) return; const login=btn.dataset.id; const act=btn.dataset.act; const p=`profiles/${login}.json`; let prof=null; try{ prof=await (await fetch(rawURL(p))).json(); }catch{} if(!prof) return alert('Profile missing'); if(act==='role') prof.role=(prof.role==='admin'?'user':'admin'); if(act==='suspend') prof.status=(prof.status==='suspended'?'active':'suspended'); await upsertText(p, JSON.stringify(prof,null,2), `admin update ${login}`); await renderAdmin(); };
+  host.onclick = async (e)=>{ const btn=e.target.closest('[data-act]'); if(!btn) return; const login=btn.dataset.id; const act=btn.dataset.act; const p=`profiles/${login}.json`; let prof=null; try{ prof=await (await fetch(rawURL(p),{cache:'no-store'})).json(); }catch{} if(!prof) return alert('Profile missing'); if(act==='role') prof.role=(prof.role==='admin'?'user':'admin'); if(act==='suspend') prof.status=(prof.status==='suspended'?'active':'suspended'); await upsertText(p, JSON.stringify(prof,null,2), `admin update ${login}`); await renderAdmin(); };
   byId('adm-search').oninput=renderAdmin;
 }
 byId('btn-rebuild-indexes').onclick = async ()=>{ if(!state.isAdmin) return alert('Admins only');
-  let idx=[]; try{ const arr=await ghGet('moments'); for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{} } } }catch{}
+  let idx=[]; try{ const arr=await ghGet('moments'); for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await (await fetch(it.download_url,{cache:'no-store'})).json(); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{} } } }catch{}
   idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); await upsertText(IDX.moments, JSON.stringify(idx,null,2), 'rebuild moments index'); sessionStorage.removeItem('mh:index:moments'); toast('Indexes rebuilt'); };
 
 // ===== Studio Pro (batch posting with per-line captions) =====
