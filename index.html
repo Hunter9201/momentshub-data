@@ -1,12 +1,10 @@
 
-
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Moments Hub — GitHub Pages Edition (Improved)</title>
+  <title>Moments Hub — Tubonge (Improved)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html,body{height:100%}
@@ -14,6 +12,15 @@
     .card{box-shadow:0 10px 30px rgba(2,6,23,.06)}
     .chip{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:rgba(0,0,0,.08)}
     .dropzone{border:1px dashed rgba(0,0,0,.15)}
+    .story-ring{box-shadow:0 0 0 2px #e879f9}
+
+    /* Stories viewer progress */
+    .progress-bar{display:flex;gap:.25rem}
+    .progress-seg{flex:1;height:3px;background:rgba(255,255,255,.35);border-radius:999px;overflow:hidden}
+    .progress-seg > span{display:block;height:100%;width:0;background:white}
+
+    /* Modal base */
+    .modal-backdrop{background:rgba(0,0,0,.6)}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -45,34 +52,17 @@
   <!-- STATUS BAR -->
   <div class="bg-amber-50 border-b border-amber-200">
     <div class="mx-auto max-w-6xl px-4 py-2 text-[12px] text-amber-900 flex items-center justify-between gap-3">
-      <div id="conn-status">Not connected. Click <strong>Connect</strong>  </div>
-      <div class="hidden sm:block text-black/60"><em></em</div>
+      <div id="conn-status">Not connected. Click <strong>Connect GitHub</strong> and use a fine‑grained token.</div>
+      <div class="hidden sm:block text-black/60"><em>Token stays in-memory only.</em></div>
     </div>
   </div>
 
   <main class="mx-auto max-w-6xl px-4 py-6 space-y-8">
-    <!-- FEED / COMPOSER -->
+    <!-- FEED / TOOLBAR -->
     <section id="tab-feed" class="space-y-6">
-      <!-- CREATE MOMENTS (supports multi-upload) -->
-      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="text-xs uppercase tracking-widest text-black/50">Create Moments</div>
-            <div class="text-[11px] text-black/60">Select <strong>multiple</strong> images/videos. Each file becomes its own Moment.</div>
-          </div>
-          <span class="chip">Multi‑upload</span>
-        </div>
-        <div class="mt-3 grid gap-2 text-sm md:grid-cols-3">
-          <label class="dropzone rounded-xl border border-black/10 bg-white/80 px-3 py-4 shadow-sm cursor-pointer md:col-span-3 text-center">
-            📤 Drop or select files (images/videos)
-            <input id="mom-files" type="file" accept="video/*,image/*" class="hidden" multiple>
-          </label>
-          <input id="mom-caption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 md:col-span-1" placeholder="Caption (used for all)" />
-          <input id="mom-tags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 md:col-span-1" placeholder="#tags (comma separated)" />
-          <input id="mom-link" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 md:col-span-1" placeholder="Optional link (https://)" />
-          <button id="mom-posts" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm md:col-span-1">Post Selected Files</button>
-          <div id="mom-progress" class="text-[11px] text-black/60 md:col-span-2"></div>
-        </div>
+      <!-- Simple toolbar with a single compose button -->
+      <div class="flex justify-end">
+        <button id="openComposeBtn" class="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm">➕ Create Moment</button>
       </div>
 
       <!-- STORIES (48-hour, multi-upload) -->
@@ -126,7 +116,7 @@
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
           <div class="text-xs uppercase tracking-widest text-black/50">Your GitHub Identity</div>
           <div id="profile-box" class="mt-3 text-sm">
-            <div class="text-black/60">Connect with the button in the header. We'll fetch your GitHub username and create <code>profiles/&lt;login&gt;.json</code>.</div>
+            <div class="text-black/60">Connect with the button in the header. We'll create <code>profiles/&lt;login&gt;.json</code>.</div>
           </div>
         </div>
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
@@ -142,7 +132,7 @@
           <div class="mt-3 text-sm">
             <button id="adm-init" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Initialize data folders</button>
             <button id="adm-addme" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Add me as admin</button>
-            <div class="text-[11px] text-black/60 mt-2">Creates folders: <code>profiles/</code>, <code>moments/</code>, <code>stories/</code>, <code>media/</code>, <code>dms/</code>, <code>indexes/</code> and file <code>admins.json</code>.</div>
+            <div class="text-[11px] text-black/60 mt-2">Creates: <code>profiles/ moments/ stories/ media/ dms/ indexes/ engagement/</code>.</div>
           </div>
         </div>
       </div>
@@ -172,7 +162,7 @@
   </main>
 
   <!-- MODAL (Login) -->
-  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
     <div class="w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold">Connect to GitHub</h3>
@@ -188,8 +178,93 @@
       </div>
     </div>
   </div>
-Orjisuppliesproduct@2025
 
+  <!-- MODAL (Compose Moments) -->
+  <div id="compose-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+    <div class="w-full max-w-xl rounded-2xl border border-black/10 bg-white p-4 card">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold">Create Moments</h3>
+        <button id="closeComposeBtn" class="text-black/50">✕</button>
+      </div>
+      <div class="mt-3 grid gap-2 text-sm">
+        <label class="dropzone rounded-xl border border-black/10 bg-white/80 px-3 py-4 shadow-sm cursor-pointer text-center">
+          📤 Drop or select files (images/videos)
+          <input id="mom-files" type="file" accept="video/*,image/*" class="hidden" multiple>
+        </label>
+        <input id="mom-caption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption (used for all)" />
+        <input id="mom-tags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags (comma separated)" />
+        <input id="mom-link" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Optional link (https://)" />
+        <div class="flex items-center justify-between gap-2">
+          <div id="mom-progress" class="text-[11px] text-black/60">No files selected.</div>
+          <button id="mom-posts" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Post Selected Files</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL (Moment Viewer: likes + comments) -->
+  <div id="moment-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+    <div class="w-full max-w-3xl rounded-2xl border border-black/10 bg-white p-0 card overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-2 border-b border-black/10">
+        <div class="flex items-center gap-3" id="moment-author"></div>
+        <button id="closeMomentBtn" class="text-black/50 px-2 py-1">✕</button>
+      </div>
+      <div class="grid md:grid-cols-2">
+        <div class="bg-black/90 text-white p-2" id="moment-media"></div>
+        <div class="p-3 space-y-3">
+          <div id="moment-caption" class="text-sm"></div>
+          <div class="flex items-center gap-3 text-sm">
+            <button id="moment-like-btn" class="rounded-full border border-black/10 bg-white px-3 py-1">❤️ <span id="moment-like-count">0</span></button>
+            <div class="text-xs text-black/60"><span id="moment-comment-count">0</span> comments</div>
+          </div>
+          <div id="moment-comments" class="space-y-2 max-h-64 overflow-y-auto"></div>
+          <div class="flex gap-2">
+            <input id="moment-comment-input" class="flex-1 rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Write a comment…">
+            <button id="moment-comment-send" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm font-semibold">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STORIES VIEWER (WhatsApp-like) -->
+  <div id="stories-viewer" class="hidden fixed inset-0 z-50 modal-backdrop">
+    <div class="relative w-full h-full">
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="relative w-[min(420px,92vw)] h-[90vh] rounded-2xl overflow-hidden bg-black text-white">
+          <!-- top bar -->
+          <div class="absolute top-0 inset-x-0 p-3">
+            <div class="progress-bar" id="sv-progress"></div>
+            <div class="mt-2 flex items-center justify-between text-sm">
+              <div class="flex items-center gap-2" id="sv-header"></div>
+              <button id="sv-close" class="text-white/80">✕</button>
+            </div>
+          </div>
+          <!-- media area -->
+          <div id="sv-media" class="absolute inset-0 grid place-items-center"></div>
+          <!-- tap areas -->
+          <button id="sv-prev" class="absolute left-0 inset-y-0 w-1/3 opacity-0">prev</button>
+          <button id="sv-next" class="absolute right-0 inset-y-0 w-1/3 opacity-0">next</button>
+          <!-- bottom actions -->
+          <div class="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+            <div id="sv-caption" class="text-sm"></div>
+            <div class="mt-2 flex items-center gap-3 text-sm">
+              <button id="sv-like-btn" class="rounded-full bg-white/10 px-3 py-1">❤️ <span id="sv-like-count">0</span></button>
+              <span class="text-white/70"><span id="sv-comment-count">0</span> comments</span>
+            </div>
+            <div class="mt-2 flex gap-2">
+              <input id="sv-comment-input" class="flex-1 rounded-xl bg-white/90 text-black px-3 py-2 text-sm" placeholder="Reply…">
+              <button id="sv-comment-send" class="rounded-xl bg-white/90 text-black px-3 py-2 text-sm font-semibold">Send</button>
+            </div>
+            <div id="sv-comments" class="mt-2 space-y-1 max-h-32 overflow-y-auto text-[13px]"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+Orjisuppliesproduct2025 </body>
 
 <script>
 // ================================
@@ -197,22 +272,25 @@ Orjisuppliesproduct@2025
 // ================================
 const byId = (id)=>document.getElementById(id);
 const modal = byId('modal');
+const composeModal = byId('compose-modal');
+const momentModal = byId('moment-modal');
+const storiesViewer = byId('stories-viewer');
 const state = { owner:'', repo:'', branch:'main', token:'', me:null, isAdmin:false };
 
-function showModal(){ modal.classList.remove('hidden'); }
-function hideModal(){ modal.classList.add('hidden'); }
+function show(el){ el.classList.remove('hidden'); }
+function hide(el){ el.classList.add('hidden'); }
 
-function setStatus(text, ok=false){
-  const el = byId('conn-status');
-  if(el){ el.innerHTML = ok ? `<span class="text-green-700">${text}</span>` : text; }
-}
+function showLogin(){ show(modal); }
+function hideLogin(){ hide(modal); }
+function showCompose(){ show(composeModal); }
+function hideCompose(){ hide(composeModal); }
+function showMoment(){ show(momentModal); }
+function hideMoment(){ hide(momentModal); }
+function showStories(){ show(storiesViewer); }
+function hideStories(){ hide(storiesViewer); stopStoryTimer(); }
 
-function toast(msg){
-  const t = document.createElement('div');
-  t.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg';
-  t.textContent = msg; document.body.appendChild(t);
-  setTimeout(()=> t.remove(), 2200);
-}
+function setStatus(text, ok=false){ const el = byId('conn-status'); if(el){ el.innerHTML = ok ? `<span class="text-green-700">${text}</span>` : text; } }
+function toast(msg){ const t = document.createElement('div'); t.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg'; t.textContent = msg; document.body.appendChild(t); setTimeout(()=> t.remove(), 2200); }
 
 // Tabs
 const switchTab = (t)=>{ ['feed','moments','dms','account','admin'].forEach(k=> byId('tab-'+k).classList.toggle('hidden', k!==t)); };
@@ -220,8 +298,11 @@ document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()
 switchTab('feed');
 
 // Modal buttons
-byId('openLoginBtn').onclick = showModal;
-byId('closeLoginBtn').onclick = hideModal;
+byId('openLoginBtn').onclick = showLogin; byId('closeLoginBtn').onclick = hideLogin;
+byId('openComposeBtn').onclick = showCompose; byId('closeComposeBtn').onclick = hideCompose;
+byId('closeMomentBtn').onclick = hideMoment;
+byId('sv-close').onclick = hideStories;
+storiesViewer.addEventListener('click', (e)=>{ if(e.target===storiesViewer) hideStories(); });
 
 // ================================
 //  GitHub Client (no backend)
@@ -230,467 +311,212 @@ const GH_API = 'https://api.github.com';
 const rawURL = (path)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${path}`;
 
 async function gh(method, url, body){
-  const res = await fetch(url, {
-    method,
-    headers: {
-      'Accept':'application/vnd.github+json',
-      ...(state.token? {'Authorization':'Bearer '+state.token}:{}),
-      'Content-Type':'application/json'
-    },
-    body: body? JSON.stringify(body): undefined
-  });
+  const res = await fetch(url, { method, headers: { 'Accept':'application/vnd.github+json', ...(state.token? {'Authorization':'Bearer '+state.token}:{}), 'Content-Type':'application/json' }, body: body? JSON.stringify(body): undefined });
   if(!res.ok){ const t = await res.text(); throw new Error(`${res.status}: ${t}`); }
   return res.json();
 }
 async function ghGet(path){ return gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`); }
 async function ghGetSha(path){ try{ const j = await ghGet(path); return j.sha; }catch{ return null; } }
-
-function bufToBase64(buf){
-  let binary = ''; const bytes = new Uint8Array(buf); const chunk = 0x8000;
-  for(let i=0;i<bytes.length;i+=chunk){ binary += String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); }
-  return btoa(binary);
-}
-
-async function upsertText(path, text, message){
-  const sha = await ghGetSha(path);
-  return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
-    message: message || `update ${path}`,
-    content: btoa(unescape(encodeURIComponent(text))),
-    branch: state.branch,
-    ...(sha? {sha}: {})
-  });
-}
-async function upsertBinary(path, file, message){
-  const buf = await file.arrayBuffer();
-  const content = bufToBase64(buf); const sha = await ghGetSha(path);
-  return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
-    message: message || `upload ${path}`,
-    content, branch: state.branch, ...(sha? {sha}: {})
-  });
-}
-
-async function ensureDirs(){
-  const make = async (p)=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`); }catch(e){} };
-  await make('profiles'); await make('moments'); await make('stories'); await make('media'); await make('dms'); await make('indexes');
-}
+function bufToBase64(buf){ let binary = ''; const bytes = new Uint8Array(buf); const chunk = 0x8000; for(let i=0;i<bytes.length;i+=chunk){ binary += String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); } return btoa(binary); }
+async function upsertText(path, text, message){ const sha = await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, { message: message||`update ${path}`, content: btoa(unescape(encodeURIComponent(text))), branch: state.branch, ...(sha? {sha}: {}) }); }
+async function upsertBinary(path, file, message){ const buf = await file.arrayBuffer(); const content = bufToBase64(buf); const sha = await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, { message: message||`upload ${path}`, content, branch: state.branch, ...(sha? {sha}: {}) }); }
+async function ensureDirs(){ const make = async (p)=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`); }catch(e){} }; await make('profiles'); await make('moments'); await make('stories'); await make('media'); await make('dms'); await make('indexes'); await make('engagement/moments'); await make('engagement/stories'); }
 
 // ================================
 //  Connect to GitHub & Identity
 // ================================
 byId('gh-connect').onclick = async ()=>{
-  state.owner = byId('gh-owner').value.trim();
-  state.repo  = byId('gh-repo').value.trim();
-  state.branch= (byId('gh-branch').value.trim()||'main');
-  state.token = byId('gh-token').value.trim();
-  const msg = byId('gh-msg');
-  try {
-    const ures = await fetch(`${GH_API}/user`, { headers: state.token? {Authorization:'Bearer '+state.token}:{}});
-    if(!ures.ok) throw new Error('Invalid token or network');
-    const me = await ures.json(); state.me = me; // {login, id, name, ...}
-    setStatus(`Connected as <strong>@${me.login}</strong>. Repo: <code>${state.owner}/${state.repo}@${state.branch}</code>`, true);
-    msg.textContent = `Connected ✓`;
-    hideModal();
-    await ensureDirs();
-    await ensureProfile(me.login);
-    await loadAdminStatus();
-    await Promise.all([loadFeed(), loadStories(), loadVertical(), loadPeople(), renderProfileBox(), renderAdmin()]);
-    toast('Connected to GitHub');
-  } catch(err){ msg.textContent = err.message; setStatus('Not connected. Check your token/repo.'); }
+  state.owner = byId('gh-owner').value.trim(); state.repo  = byId('gh-repo').value.trim(); state.branch= (byId('gh-branch').value.trim()||'main'); state.token = byId('gh-token').value.trim(); const msg = byId('gh-msg');
+  try { const ures = await fetch(`${GH_API}/user`, { headers: state.token? {Authorization:'Bearer '+state.token}:{}}); if(!ures.ok) throw new Error('Invalid token or network'); const me = await ures.json(); state.me = me; setStatus(`Connected as <strong>@${me.login}</strong>. Repo: <code>${state.owner}/${state.repo}@${state.branch}</code>`, true); msg.textContent='Connected ✓'; hideLogin(); await ensureDirs(); await ensureProfile(me.login); await loadAdminStatus(); await Promise.all([loadFeed(), loadStories(), loadVertical(), loadPeople(), renderProfileBox(), renderAdmin()]); toast('Connected to GitHub'); } catch(err){ msg.textContent = err.message; setStatus('Not connected. Check your token/repo.'); }
 };
 
-async function ensureProfile(login){
-  const path = `profiles/${login}.json`;
-  let cur = null; try { cur = await (await fetch(rawURL(path))).json(); } catch {}
-  if(!cur || !cur.login){
-    const data = { login, name: state.me?.name || login, handle: null, role: 'user', status: 'active', created_at: new Date().toISOString() };
-    await upsertText(path, JSON.stringify(data,null,2), `create profile ${login}`);
-  }
-}
-
-async function loadAdminStatus(){
-  try{
-    const admins = await (await fetch(rawURL('admins.json'))).json();
-    state.isAdmin = Array.isArray(admins) && admins.includes(state.me?.login);
-    byId('adminTabBtn').classList.toggle('hidden', !state.isAdmin);
-  }catch{ byId('adminTabBtn').classList.add('hidden'); state.isAdmin=false; }
-}
-
-async function renderProfileBox(){
-  const box = byId('profile-box'); if(!state.me){ box.innerHTML = `<div class="text-black/60">Not connected.</div>`; return; }
-  const ppath = `profiles/${state.me.login}.json`;
-  let prof = null; try{ prof = await (await fetch(rawURL(ppath))).json(); }catch{}
-  box.innerHTML = `
-    <div class="flex items-center gap-3">
-      <div class="h-12 w-12 rounded-full border border-black/10 bg-white/70 grid place-items-center text-xs">${(prof?.name||state.me.login).slice(0,1)}</div>
-      <div>
-        <div class="font-semibold">${prof?.name||state.me.login} <span class="chip">${prof?.role||'user'}</span></div>
-        <div class="text-xs text-black/60">@${state.me.login} ${prof?.handle? '• @'+prof.handle:''}</div>
-      </div>
-    </div>`;
-  byId('pf-name').value = prof?.name||'';
-  byId('pf-handle').value = prof?.handle||'';
-}
-
-byId('pf-save').onclick = async ()=>{
-  if(!state.me) return alert('Connect first');
-  const ppath = `profiles/${state.me.login}.json`;
-  let prof = null; try{ prof = await (await fetch(rawURL(ppath))).json(); }catch{}
-  prof = prof||{ login: state.me.login, role:'user', status:'active', created_at:new Date().toISOString() };
-  prof.name = byId('pf-name').value.trim()||prof.name||state.me.login;
-  prof.handle = byId('pf-handle').value.trim()||null;
-  await upsertText(ppath, JSON.stringify(prof,null,2), `update profile ${state.me.login}`);
-  toast('Profile saved');
-  await renderProfileBox();
-  await loadPeople();
-};
-
-// Admin init
+async function ensureProfile(login){ const path = `profiles/${login}.json`; let cur = null; try { cur = await (await fetch(rawURL(path))).json(); } catch {} if(!cur || !cur.login){ const data = { login, name: state.me?.name || login, handle: null, role: 'user', status: 'active', created_at: new Date().toISOString() }; await upsertText(path, JSON.stringify(data,null,2), `create profile ${login}`); }}
+async function loadAdminStatus(){ try{ const admins = await (await fetch(rawURL('admins.json'))).json(); state.isAdmin = Array.isArray(admins) && admins.includes(state.me?.login); byId('adminTabBtn').classList.toggle('hidden', !state.isAdmin); }catch{ byId('adminTabBtn').classList.add('hidden'); state.isAdmin=false; } }
+async function renderProfileBox(){ const box = byId('profile-box'); if(!state.me){ box.innerHTML = `<div class="text-black/60">Not connected.</div>`; return; } const ppath = `profiles/${state.me.login}.json`; let prof = null; try{ prof = await (await fetch(rawURL(ppath))).json(); }catch{} box.innerHTML = `<div class="flex items-center gap-3"><div class="h-12 w-12 rounded-full border border-black/10 bg-white/70 grid place-items-center text-xs">${(prof?.name||state.me.login).slice(0,1)}</div><div><div class="font-semibold">${prof?.name||state.me.login} <span class="chip">${prof?.role||'user'}</span></div><div class="text-xs text-black/60">@${state.me.login} ${prof?.handle? '• @'+prof.handle:''}</div></div></div>`; byId('pf-name').value = prof?.name||''; byId('pf-handle').value = prof?.handle||''; }
+byId('pf-save').onclick = async ()=>{ if(!state.me) return alert('Connect first'); const ppath = `profiles/${state.me.login}.json`; let prof = null; try{ prof = await (await fetch(rawURL(ppath))).json(); }catch{} prof = prof||{ login: state.me.login, role:'user', status:'active', created_at:new Date().toISOString() }; prof.name = byId('pf-name').value.trim()||prof.name||state.me.login; prof.handle = byId('pf-handle').value.trim()||null; await upsertText(ppath, JSON.stringify(prof,null,2), `update profile ${state.me.login}`); toast('Profile saved'); await renderProfileBox(); await loadPeople(); };
 byId('adm-init').onclick = async ()=>{ if(!state.me) return alert('Connect first'); await ensureDirs(); toast('Initialized folders'); };
-byId('adm-addme').onclick = async ()=>{
-  if(!state.me) return alert('Connect first');
-  let arr = []; try{ arr = await (await fetch(rawURL('admins.json'))).json(); }catch{}
-  if(!Array.isArray(arr)) arr=[]; if(!arr.includes(state.me.login)) arr.push(state.me.login);
-  await upsertText('admins.json', JSON.stringify(arr,null,2), 'update admins');
-  await loadAdminStatus(); toast('You are admin now');
-};
+byId('adm-addme').onclick = async ()=>{ if(!state.me) return alert('Connect first'); let arr = []; try{ arr = await (await fetch(rawURL('admins.json'))).json(); }catch{} if(!Array.isArray(arr)) arr=[]; if(!arr.includes(state.me.login)) arr.push(state.me.login); await upsertText('admins.json', JSON.stringify(arr,null,2), 'update admins'); await loadAdminStatus(); toast('You are admin now'); };
 
 // ================================
-//  Moments (posts) — Multi Upload
+//  Moments (posts) — Multi Upload, Likes & Comments
 // ================================
-function cardHTML(m, author){
+function cardHTML(m, author, counts={likes:0,comments:0}){
   const thumb = m.kind==='image' ? m.media_url : '';
   return `
-  <div class="group relative overflow-hidden rounded-2xl border bg-white shadow p-3">
+  <div class="group relative overflow-hidden rounded-2xl border bg-white shadow p-3" data-moment="${m.id}">
     <div class="flex gap-3">
       <div class="w-36 shrink-0 overflow-hidden rounded-xl">
-        ${m.kind==='video'
-          ? `<video class="h-24 w-full object-cover" src="${m.media_url}" muted loop playsinline></video>`
-          : `<img class="h-24 w-full object-cover" src="${thumb}" alt="">`}
+        ${m.kind==='video' ? `<video class="h-24 w-full object-cover" src="${m.media_url}" muted loop playsinline></video>` : `<img class="h-24 w-full object-cover" src="${thumb}" alt="">`}
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center justify-between gap-2">
           <span class="inline-flex items-center rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white shadow-sm">${m.kind}</span>
-          ${m.link ? `<a href="${m.link}" target="_blank" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🔗</a>` : ``}
+          <div class="flex items-center gap-2">
+            <button class="rounded-full border border-black/10 bg-white/80 px-2 py-1 text-[11px]" data-view="${m.id}">View</button>
+            ${m.link ? `<a href="${m.link}" target="_blank" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🔗</a>` : ``}
+          </div>
         </div>
-        <h3 class="mt-1 text-base font-bold">${m.caption||''}</h3>
+        <h3 class="mt-1 text-base font-bold truncate">${m.caption||''}</h3>
         <p class="text-sm text-black/70">${author?.name||'—'} ${author?.handle? '• @'+author.handle:''}</p>
-        <div class="mt-2 text-xs text-black/60">${(m.tags||[]).map(t=>'#'+t).join(' ')}</div>
+        <div class="mt-2 text-xs text-black/60 truncate">${(m.tags||[]).map(t=>'#'+t).join(' ')}</div>
+        <div class="mt-2 flex items-center gap-3 text-xs">
+          <button class="rounded-full border border-black/10 bg-white/80 px-2 py-1" data-like-moment="${m.id}">❤️ <span class="like-count">${counts.likes||0}</span></button>
+          <button class="rounded-full border border-black/10 bg-white/80 px-2 py-1" data-view="${m.id}">💬 <span class="comment-count">${counts.comments||0}</span></button>
+        </div>
       </div>
     </div>
   </div>`;
 }
 
-async function uploadMedia(file){
-  if(!state.me) throw new Error('Connect first');
-  const ext = (file.name.split('.').pop()||'bin').toLowerCase();
-  const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const d = new Date(); const year = d.getUTCFullYear(); const month = String(d.getUTCMonth()+1).padStart(2,'0');
-  const path = `media/${year}/${month}/${state.me.login}_${id}.${ext}`;
-  await upsertBinary(path, file, `upload media ${id}`);
-  return rawURL(path);
-}
-
-async function postOneMomentFromFile(file, common){
-  const kind = (file.type||'').startsWith('video') ? 'video' : 'image';
-  const media_url = await uploadMedia(file);
-  const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const meta = { id, author: state.me.login, kind, caption: common.caption, tags: common.tags, link: common.link, media_url, created_at: new Date().toISOString() };
-  await upsertText(`moments/${id}.json`, JSON.stringify(meta,null,2), `post moment ${id}`);
-  return meta;
-}
-
+async function uploadMedia(file){ if(!state.me) throw new Error('Connect first'); const ext = (file.name.split('.').pop()||'bin').toLowerCase(); const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`; const d = new Date(); const year = d.getUTCFullYear(); const month = String(d.getUTCMonth()+1).padStart(2,'0'); const path = `media/${year}/${month}/${state.me.login}_${id}.${ext}`; await upsertBinary(path, file, `upload media ${id}`); return rawURL(path); }
+async function postOneMomentFromFile(file, common){ const kind = (file.type||'').startsWith('video') ? 'video' : 'image'; const media_url = await uploadMedia(file); const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`; const meta = { id, author: state.me.login, kind, caption: common.caption, tags: common.tags, link: common.link, media_url, created_at: new Date().toISOString() }; await upsertText(`moments/${id}.json`, JSON.stringify(meta,null,2), `post moment ${id}`); await ensureEngagement('moments', id); return meta; }
 function parseTags(v){ return (v||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean); }
+function limitConcurrency(items, limit, worker){ return new Promise((resolve, reject)=>{ let i=0, active=0, results=[]; const run=()=>{ while(active<limit && i<items.length){ const cur = items[i]; const idx=i; i++; active++; Promise.resolve(worker(cur, idx)).then(r=>{ results[idx]=r; }).catch(reject).finally(()=>{ active--; if(i>=items.length && active===0) resolve(results); else run(); }); } }; run(); }); }
 
-function limitConcurrency(items, limit, worker){
-  return new Promise((resolve, reject)=>{
-    let i=0, active=0, results=[]; const run=()=>{
-      while(active<limit && i<items.length){
-        const cur = items[i]; const idx=i; i++; active++;
-        Promise.resolve(worker(cur, idx)).then(r=>{ results[idx]=r; }).catch(reject).finally(()=>{ active--; if(i>=items.length && active===0) resolve(results); else run(); });
-      }
-    }; run();
-  });
-}
-
-byId('mom-posts').onclick = async ()=>{
-  try{
-    if(!state.me) return alert('Connect first');
-    const files = byId('mom-files').files; if(!files || !files.length) return alert('Select files first');
-    const caption = byId('mom-caption').value.trim();
-    const tags = parseTags(byId('mom-tags').value);
-    const link = byId('mom-link').value.trim()||null;
-    const common = { caption, tags, link };
-    const total = files.length; let done=0; const prog = byId('mom-progress');
-    prog.textContent = `Uploading 0/${total}…`;
-    const arr = Array.from(files);
-    await limitConcurrency(arr, 3, async (file)=>{ const m = await postOneMomentFromFile(file, common); done++; prog.textContent = `Uploaded ${done}/${total}`; return m; });
-    prog.textContent = `Done ✓`;
-    byId('mom-files').value=''; byId('mom-caption').value=''; byId('mom-tags').value=''; byId('mom-link').value='';
-    sessionStorage.removeItem('mh:index:moments');
-    await loadFeed(); await loadVertical();
-    toast('Moments posted');
-  }catch(err){ alert(err.message); }
-};
+// Compose poster
+byId('mom-posts').onclick = async ()=>{ try{ if(!state.me) return alert('Connect first'); const files = byId('mom-files').files; if(!files || !files.length) return alert('Select files first'); const caption = byId('mom-caption').value.trim(); const tags = parseTags(byId('mom-tags').value); const link = byId('mom-link').value.trim()||null; const common = { caption, tags, link }; const total = files.length; let done=0; const prog = byId('mom-progress'); prog.textContent = `Uploading 0/${total}…`; const arr = Array.from(files); await limitConcurrency(arr, 3, async (file)=>{ const m = await postOneMomentFromFile(file, common); done++; prog.textContent = `Uploaded ${done}/${total}`; return m; }); prog.textContent = `Done ✓`; byId('mom-files').value=''; byId('mom-caption').value=''; byId('mom-tags').value=''; byId('mom-link').value=''; sessionStorage.removeItem('mh:index:moments'); await loadFeed(); await loadVertical(); toast('Moments posted'); hideCompose(); }catch(err){ alert(err.message); } };
 
 // ================================
-//  Stories (48h TTL) — Multi Upload
+//  Stories (48h TTL) — Multi Upload + WhatsApp-like viewer
 // ================================
-function storyChipHTML(s, author){
-  const thumb = s.kind==='image' ? s.media_url : '';
-  return `<button class="flex flex-col items-center gap-1">
-    <span class="block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden">
-      ${s.kind==='image' ? `<img src="${thumb}" class="h-full w-full object-cover">` : `<video src="${s.media_url}" class="h-full w-full object-cover" muted></video>`}
-    </span>
-    <span class="text-[11px] max-w-20 truncate">${author?.name||'Story'}</span>
-  </button>`;
+function storyChipHTML(user, firstStory){ const thumb = firstStory.kind==='image' ? firstStory.media_url : ''; return `<button class="flex flex-col items-center gap-1" data-story-author="${user}">
+  <span class="block h-16 w-16 rounded-full story-ring overflow-hidden">
+    ${firstStory.kind==='image' ? `<img src="${thumb}" class="h-full w-full object-cover">` : `<video src="${firstStory.media_url}" class="h-full w-full object-cover" muted></video>`}
+  </span>
+  <span class="text-[11px] max-w-20 truncate">${firstStory.authorName||user}</span>
+</button>`; }
+
+async function postOneStoryFromFile(file){ const kind = (file.type||'').startsWith('video') ? 'video' : 'image'; const media_url = await uploadMedia(file); const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`; const created_at = new Date().toISOString(); const expires_at = new Date(Date.now()+48*3600*1000).toISOString(); const s = { id, author: state.me.login, kind, caption:'', media_url, created_at, expires_at }; await upsertText(`stories/${id}.json`, JSON.stringify(s,null,2), `add story ${id}`); await ensureEngagement('stories', id); return s; }
+
+byId('story-files').onchange = async (e)=>{ try{ if(!state.me) return alert('Connect first'); const files = Array.from(e.target.files||[]); if(!files.length) return; toast(`Adding ${files.length} stor${files.length>1?'ies':'y'}…`); await limitConcurrency(files, 3, postOneStoryFromFile); e.target.value=''; await loadStories(); toast('Stories added'); }catch(err){ alert(err.message); } };
+
+async function listJsonIn(path){ let items = []; try{ const arr = await ghGet(path); items = Array.isArray(arr)? arr.filter(x=>x.type==='file' && x.name.endsWith('.json')):[]; }catch{} const out = []; for(const it of items){ try{ const j = await (await fetch(it.download_url)).json(); out.push(j); }catch{} } return out; }
+
+let STORY_GROUPS = []; // [{author, name, stories:[...]}]
+
+async function loadStories(){ const row = byId('stories-row'); row.innerHTML=''; const stories = await listJsonIn('stories'); const now = Date.now(); const live = stories.filter(s=> new Date(s.expires_at).getTime() > now).sort((a,b)=> new Date(a.created_at)-new Date(b.created_at)); // oldest to newest per author
+  // group by author
+  const byAuthor = new Map(); for(const s of live){ if(!byAuthor.has(s.author)) byAuthor.set(s.author, []); byAuthor.get(s.author).push(s); }
+  // load author profiles
+  STORY_GROUPS = []; for(const [author, arr] of byAuthor.entries()){ let prof=null; try{ prof = await (await fetch(rawURL(`profiles/${author}.json`))).json(); }catch{} const name = prof?.name || author; STORY_GROUPS.push({ author, name, stories: arr }); }
+  // chips
+  if(STORY_GROUPS.length===0){ row.innerHTML = `<div class="text-sm text-black/60">No active stories.</div>`; return; }
+  row.innerHTML = STORY_GROUPS.map(g=> storyChipHTML(g.author, {...g.stories[g.stories.length-1], authorName:g.name}) ).join('');
 }
 
-async function postOneStoryFromFile(file){
-  const kind = (file.type||'').startsWith('video') ? 'video' : 'image';
-  const media_url = await uploadMedia(file);
-  const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const created_at = new Date().toISOString();
-  const expires_at = new Date(Date.now()+48*3600*1000).toISOString();
-  const s = { id, author: state.me.login, kind, caption:'New story', media_url, created_at, expires_at };
-  await upsertText(`stories/${id}.json`, JSON.stringify(s,null,2), `add story ${id}`);
-  return s;
-}
+// Stories Viewer state
+let svGroup = 0, svIdx = 0, svTimer=null, svVideo=null;
+const IMG_DURATION = 6000; // ms
+function stopStoryTimer(){ if(svTimer){ clearTimeout(svTimer); svTimer=null; } if(svVideo){ svVideo.pause(); svVideo=null; } }
 
-byId('story-files').onchange = async (e)=>{
-  try{
-    if(!state.me) return alert('Connect first');
-    const files = Array.from(e.target.files||[]); if(!files.length) return;
-    toast(`Adding ${files.length} stor${files.length>1?'ies':'y'}…`);
-    await limitConcurrency(files, 3, postOneStoryFromFile);
-    e.target.value='';
-    await loadStories();
-    toast('Stories added');
-  }catch(err){ alert(err.message); }
-};
-
-async function listJsonIn(path){
-  let items = [];
-  try{ const arr = await ghGet(path); items = Array.isArray(arr)? arr.filter(x=>x.type==='file' && x.name.endsWith('.json')):[]; }catch{}
-  const out = [];
-  for(const it of items){ try{ const j = await (await fetch(it.download_url)).json(); out.push(j); }catch{} }
-  return out;
+function renderStory(){ const group = STORY_GROUPS[svGroup]; if(!group){ hideStories(); return; } const story = group.stories[svIdx]; if(!story){ hideStories(); return; }
+  // header
+  byId('sv-header').innerHTML = `<div class="h-8 w-8 rounded-full bg-white/20 grid place-items-center text-xs">${group.name.slice(0,1)}</div><div>${group.name} <span class="text-white/60 text-xs">@${group.author}</span></div>`;
+  // progress segments
+  const segs = group.stories.map((_,i)=>`<div class="progress-seg"><span style="width:${i<svIdx? '100%': '0'}"></span></div>`).join('');
+  byId('sv-progress').innerHTML = segs;
+  // media
+  const mediaHost = byId('sv-media'); mediaHost.innerHTML=''; const isVid = story.kind==='video';
+  if(isVid){ const v = document.createElement('video'); v.src = story.media_url; v.playsInline = true; v.muted = true; v.autoplay = true; v.className='max-h-full max-w-full'; mediaHost.appendChild(v); svVideo=v; v.onloadedmetadata=()=>{ startStoryTimer(v.duration? v.duration*1000 : IMG_DURATION); v.play().catch(()=>{}); }; v.onended=()=> nextStory(); }
+  else { const img = document.createElement('img'); img.src = story.media_url; img.className='max-h-full max-w-full object-contain'; mediaHost.appendChild(img); startStoryTimer(IMG_DURATION); }
+  byId('sv-caption').textContent = story.caption||'';
+  // engagement numbers
+  refreshEngagementUI('stories', story.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') });
+  // like toggle binding
+  byId('sv-like-btn').onclick = async ()=>{ await toggleLike('stories', story.id); refreshEngagementUI('stories', story.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') }); };
+  // comments
+  byId('sv-comment-send').onclick = async ()=>{ const input = byId('sv-comment-input'); const text=(input.value||'').trim(); if(!text) return; await addComment('stories', story.id, text); input.value=''; refreshEngagementUI('stories', story.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') }); };
 }
+function startStoryTimer(ms){ stopStoryTimer(); svTimer = setTimeout(()=> nextStory(), ms); animateProgress(ms); }
+function animateProgress(ms){ const segs = byId('sv-progress').querySelectorAll('.progress-seg > span'); const cur = segs[svIdx]; if(!cur) return; cur.style.transition = `width ${ms}ms linear`; requestAnimationFrame(()=> cur.style.width='100%'); }
+function nextStory(){ const group = STORY_GROUPS[svGroup]; if(svIdx < group.stories.length-1){ svIdx++; renderStory(); } else if(svGroup < STORY_GROUPS.length-1){ svGroup++; svIdx=0; renderStory(); } else { hideStories(); } }
+function prevStory(){ if(svIdx>0){ svIdx--; renderStory(); } else if(svGroup>0){ svGroup--; svIdx = STORY_GROUPS[svGroup].stories.length-1; renderStory(); } else { /* at start */ } }
+byId('sv-next').onclick = ()=>{ nextStory(); };
+byId('sv-prev').onclick = ()=>{ prevStory(); };
 
-async function loadStories(){
-  const row = byId('stories-row'); row.innerHTML='';
-  const stories = await listJsonIn('stories'); const now = Date.now();
-  const live = stories.filter(s=> new Date(s.expires_at).getTime() > now);
-  const authors = new Map();
-  for(const s of live){ if(!authors.has(s.author)){ try{ const p = await (await fetch(rawURL(`profiles/${s.author}.json`))).json(); authors.set(s.author,p); }catch{} } }
-  row.innerHTML = live.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at))
-                      .map(s=>storyChipHTML(s, authors.get(s.author))).join('') || `<div class="text-sm text-black/60">No active stories.</div>`;
-}
+// click chip to open viewer at that author's first story
+byId('stories-row').addEventListener('click', (e)=>{ const btn = e.target.closest('[data-story-author]'); if(!btn) return; const author = btn.getAttribute('data-story-author'); svGroup = STORY_GROUPS.findIndex(g=> g.author===author); svIdx=0; showStories(); renderStory(); });
 
 // ================================
-//  Feed & Vertical (with Indexes + Pagination)
+//  Engagement (likes/comments) shared helpers
 // ================================
-function verticalItemHTML(m, author){
-  return `
-    <div class="rounded-2xl overflow-hidden border border-black/10 bg-black/90 text-white relative" style="scroll-snap-align:center">
-      <div class="aspect-[9/16] w-full relative">
-        ${m.kind==='video' ? `<video class="vitem absolute inset-0 h-full w-full object-cover" src="${m.media_url}" playsinline muted loop></video>`
-                            : `<img class="absolute inset-0 h-full w-full object-cover" src="${m.media_url}" alt="">`}
-        <div class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0">
-          <div class="text-sm font-semibold">${author?.name||'—'}</div>
-          <div class="text-sm opacity-90">${m.caption||''}</div>
-          <div class="text-xs opacity-70">${(m.tags||[]).map(t=>'#'+t).join(' ')}</div>
-        </div>
-      </div>
-    </div>`;
+const ENG = { moments: (id)=>`engagement/moments/${id}.json`, stories: (id)=>`engagement/stories/${id}.json` };
+async function ensureEngagement(kind, id){ const path = ENG[kind](id); try{ await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ await upsertText(path, JSON.stringify({likes:[], comments:[]},null,2), `init engagement ${kind}/${id}`); } }
+async function readEngagement(kind, id){ const path = ENG[kind](id); try{ return await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ return {likes:[], comments:[]}; } }
+async function writeEngagement(kind, id, data){ const path = ENG[kind](id); await upsertText(path, JSON.stringify(data,null,2), `engage ${kind}/${id}`); }
+async function toggleLike(kind, id){ if(!state.me) return alert('Connect first'); await ensureEngagement(kind,id); const data = await readEngagement(kind,id); const who = state.me.login; const i = data.likes.indexOf(who); if(i>=0) data.likes.splice(i,1); else data.likes.push(who); await writeEngagement(kind,id,data); return data; }
+async function addComment(kind, id, text){ if(!state.me) return alert('Connect first'); await ensureEngagement(kind,id); const data = await readEngagement(kind,id); const c = { id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, from: state.me.login, text, ts: Date.now() }; data.comments = data.comments||[]; data.comments.push(c); await writeEngagement(kind,id,data); return c; }
+function renderComments(list){ return (list||[]).slice(-100).map(c=>`<div class="rounded-xl bg-black/5 p-2"><div class="text-[11px] text-black/60">@${c.from} • ${new Date(c.ts).toLocaleString()}</div><div class="text-sm">${c.text}</div></div>`).join(''); }
+async function refreshEngagementUI(kind, id, { likeCountEl, commentCountEl, commentsHost }){ const data = await readEngagement(kind,id); if(likeCountEl) likeCountEl.textContent = data.likes?.length||0; if(commentCountEl) commentCountEl.textContent = data.comments?.length||0; if(commentsHost) commentsHost.innerHTML = renderComments(data.comments); }
+
+// ================================
+//  Feed & Vertical (with Indexes + Pagination) + Viewer
+// ================================
+function verticalItemHTML(m, author){ return `<div class="rounded-2xl overflow-hidden border border-black/10 bg-black/90 text-white relative" style="scroll-snap-align:center"><div class="aspect-[9/16] w-full relative">${m.kind==='video' ? `<video class="vitem absolute inset-0 h-full w-full object-cover" src="${m.media_url}" playsinline muted loop></video>` : `<img class="absolute inset-0 h-full w-full object-cover" src="${m.media_url}" alt="">`}<div class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0"><div class="text-sm font-semibold">${author?.name||'—'}</div><div class="text-sm opacity-90">${m.caption||''}</div><div class="text-xs opacity-70">${(m.tags||[]).map(t=>'#'+t).join(' ')}</div></div></div></div>`; }
+const IDX = { moments: 'indexes/moments.json' }; const PAGE_SIZE = 12; const VERT_PAGE = 6; let momentsIndex = null; let feedCursor = 0; let vertCursor = 0; async function readRaw(path){ try { return await (await fetch(rawURL(path), {cache:'no-store'})).json(); } catch { return null; } } async function writeIndex(path, data, msg){ await upsertText(path, JSON.stringify(data,null,2), msg||'update index'); }
+async function loadMomentsIndex({force=false}={}){ if(!force){ if(momentsIndex) return momentsIndex; const cached = sessionStorage.getItem('mh:index:moments'); if(cached){ try{ momentsIndex = JSON.parse(cached); return momentsIndex; }catch{} } } let idx = await readRaw(IDX.moments); if(!idx){ let arr = []; try { arr = await ghGet('moments'); } catch {} idx = []; for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j = await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' }); }catch{} } } try { await writeIndex(IDX.moments, idx, 'build moments index'); } catch {} } idx.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at)); momentsIndex = idx; try { sessionStorage.setItem('mh:index:moments', JSON.stringify(idx)); } catch {} return idx; }
+
+async function renderFeedPage(reset=false){ const host = byId('feed'); if(reset){ feedCursor = 0; host.innerHTML=''; } const idx = await loadMomentsIndex({force:false}); const slice = idx.slice(feedCursor, feedCursor + PAGE_SIZE); if(slice.length===0 && feedCursor===0){ host.innerHTML = `<div class="text-sm text-black/60">No posts yet.</div>`; return; } const authorMap = new Map(); for(const m of slice){ if(!authorMap.has(m.author)){ try{ const p = await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); } catch{ authorMap.set(m.author,null); } } const card = document.createElement('div'); card.innerHTML = cardHTML(m, authorMap.get(m.author)); const cardEl = card.firstElementChild; host.appendChild(cardEl); // fetch engagement counts
+  refreshEngagementUI('moments', m.id, { likeCountEl: cardEl.querySelector('.like-count'), commentCountEl: cardEl.querySelector('.comment-count') }); }
+  feedCursor += slice.length; let moreBtn = document.getElementById('feed-more'); if(feedCursor < idx.length){ if(!moreBtn){ moreBtn = document.createElement('button'); moreBtn.id = 'feed-more'; moreBtn.className = 'w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm shadow-sm'; moreBtn.textContent = 'Load more'; moreBtn.onclick = ()=> renderFeedPage(false); host.parentElement.appendChild(moreBtn); } } else if(moreBtn){ moreBtn.remove(); }
 }
-
-const IDX = { moments: 'indexes/moments.json' };
-const PAGE_SIZE = 12; const VERT_PAGE = 6;
-let momentsIndex = null; let feedCursor = 0; let vertCursor = 0;
-
-async function readRaw(path){ try { return await (await fetch(rawURL(path), {cache:'no-store'})).json(); } catch { return null; } }
-async function writeIndex(path, data, msg){ await upsertText(path, JSON.stringify(data,null,2), msg||'update index'); }
-
-async function loadMomentsIndex({force=false}={}){
-  if(!force){
-    if(momentsIndex) return momentsIndex;
-    const cached = sessionStorage.getItem('mh:index:moments');
-    if(cached){ try{ momentsIndex = JSON.parse(cached); return momentsIndex; }catch{} }
-  }
-  let idx = await readRaw(IDX.moments);
-  if(!idx){
-    let arr = []; try { arr = await ghGet('moments'); } catch {}
-    idx = [];
-    for(const it of (arr||[])){
-      if(it.type==='file' && it.name.endsWith('.json')){
-        try{ const j = await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' }); }catch{}
-      }
-    }
-    try { await writeIndex(IDX.moments, idx, 'build moments index'); } catch {}
-  }
-  idx.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
-  momentsIndex = idx; try { sessionStorage.setItem('mh:index:moments', JSON.stringify(idx)); } catch {}
-  return idx;
-}
-
-async function renderFeedPage(reset=false){
-  const host = byId('feed'); if(reset){ feedCursor = 0; host.innerHTML=''; }
-  const idx = await loadMomentsIndex({force:false});
-  const slice = idx.slice(feedCursor, feedCursor + PAGE_SIZE);
-  if(slice.length===0 && feedCursor===0){ host.innerHTML = `<div class="text-sm text-black/60">No posts yet.</div>`; return; }
-  const authorMap = new Map();
-  for(const m of slice){
-    if(!authorMap.has(m.author)){
-      try{ const p = await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); }
-      catch{ authorMap.set(m.author,null); }
-    }
-    host.insertAdjacentHTML('beforeend', cardHTML(m, authorMap.get(m.author)));
-  }
-  feedCursor += slice.length;
-  let moreBtn = document.getElementById('feed-more');
-  if(feedCursor < idx.length){
-    if(!moreBtn){
-      moreBtn = document.createElement('button');
-      moreBtn.id = 'feed-more'; moreBtn.className = 'w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm shadow-sm';
-      moreBtn.textContent = 'Load more'; moreBtn.onclick = ()=> renderFeedPage(false);
-      host.parentElement.appendChild(moreBtn);
-    }
-  } else if(moreBtn){ moreBtn.remove(); }
-}
-
 async function loadFeed(){ await renderFeedPage(true); }
 
-async function renderVerticalPage(reset=false){
-  const host = byId('mom-vertical'); if(reset){ vertCursor = 0; host.innerHTML=''; }
-  const idx = await loadMomentsIndex({force:false});
-  const chunk = idx.slice(vertCursor, vertCursor + VERT_PAGE);
-  const authorMap = new Map();
-  for(const m of chunk){
-    if(!authorMap.has(m.author)){
-      try{ const p = await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); }
-      catch{ authorMap.set(m.author,null); }
-    }
-    host.insertAdjacentHTML('beforeend', verticalItemHTML(m, authorMap.get(m.author)));
-  }
-  vertCursor += chunk.length;
-  const vids = Array.from(host.querySelectorAll('.vitem'));
-  if('IntersectionObserver' in window){
-    const obs = new IntersectionObserver((entries)=>{
-      entries.forEach(en=>{ const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}); } else { v.pause(); } });
-    },{threshold:[0,0.6,1]});
-    vids.forEach(v=>obs.observe(v));
-  } else { vids.forEach(v=> v.play && v.play().catch(()=>{})); }
+async function renderVerticalPage(reset=false){ const host = byId('mom-vertical'); if(reset){ vertCursor = 0; host.innerHTML=''; } const idx = await loadMomentsIndex({force:false}); const chunk = idx.slice(vertCursor, vertCursor + VERT_PAGE); const authorMap = new Map(); for(const m of chunk){ if(!authorMap.has(m.author)){ try{ const p = await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); authorMap.set(m.author,p); } catch{ authorMap.set(m.author,null); } } host.insertAdjacentHTML('beforeend', verticalItemHTML(m, authorMap.get(m.author))); } vertCursor += chunk.length; const vids = Array.from(host.querySelectorAll('.vitem')); if('IntersectionObserver' in window){ const obs = new IntersectionObserver((entries)=>{ entries.forEach(en=>{ const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}); } else { v.pause(); } }); },{threshold:[0,0.6,1]}); vids.forEach(v=>obs.observe(v)); } else { vids.forEach(v=> v.play && v.play().catch(()=>{})); }
 }
-
 async function loadVertical(){ await renderVerticalPage(true); }
+(function(){ const host = byId('mom-vertical'); host.addEventListener('scroll', ()=>{ if(host.scrollTop + host.clientHeight >= host.scrollHeight - 200){ renderVerticalPage(false); } }); document.addEventListener('keydown',(e)=>{ if(byId('tab-moments').classList.contains('hidden')) return; if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}); } if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}); } }); })();
 
-(function(){
-  const host = byId('mom-vertical');
-  host.addEventListener('scroll', ()=>{ if(host.scrollTop + host.clientHeight >= host.scrollHeight - 200){ renderVerticalPage(false); } });
-  document.addEventListener('keydown',(e)=>{
-    if(byId('tab-moments').classList.contains('hidden')) return;
-    if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}); }
-    if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}); }
-  });
-})();
+// update index upon new posts
+async function prependToIndex(meta){ let idx = await loadMomentsIndex({force:true}) || []; idx.unshift({ id:meta.id, author:meta.author, kind:meta.kind, caption:meta.caption||'', tags:meta.tags||[], link:meta.link||null, media_url:meta.media_url, created_at:meta.created_at}); try { await writeIndex(IDX.moments, idx, 'append moments index'); } catch {} sessionStorage.removeItem('mh:index:moments'); }
+const _postOneMomentFromFile = postOneMomentFromFile; postOneMomentFromFile = async function(file, common){ const meta = await _postOneMomentFromFile(file, common); await prependToIndex(meta); return meta; };
 
-// Keep index updated when posting new moments
-async function prependToIndex(meta){
-  let idx = await loadMomentsIndex({force:true}) || [];
-  idx.unshift({ id:meta.id, author:meta.author, kind:meta.kind, caption:meta.caption||'', tags:meta.tags||[], link:meta.link||null, media_url:meta.media_url, created_at:meta.created_at});
-  try { await writeIndex(IDX.moments, idx, 'append moments index'); } catch {}
-  sessionStorage.removeItem('mh:index:moments');
+// Feed actions (delegate): open viewer & like
+byId('feed').addEventListener('click', async (e)=>{
+  const likeBtn = e.target.closest('[data-like-moment]');
+  if(likeBtn){ const id = likeBtn.getAttribute('data-like-moment'); await toggleLike('moments', id); await refreshEngagementUI('moments', id, { likeCountEl: likeBtn.querySelector('.like-count'), commentCountEl: likeBtn.parentElement.querySelector('.comment-count') }); return; }
+  const viewBtn = e.target.closest('[data-view]');
+  if(viewBtn){ const id = viewBtn.getAttribute('data-view'); openMomentViewer(id); }
+});
+
+// Moment viewer
+async function openMomentViewer(id){ // find meta from index
+  const idx = await loadMomentsIndex({force:false}); const m = idx.find(x=> x.id===id); if(!m){ return alert('Moment not found'); }
+  // author box
+  let prof=null; try{ prof = await (await fetch(rawURL(`profiles/${m.author}.json`))).json(); }catch{}
+  byId('moment-author').innerHTML = `<div class="h-8 w-8 rounded-full bg-black/10 grid place-items-center text-xs">${(prof?.name||m.author).slice(0,1)}</div><div><div class="text-sm font-semibold">${prof?.name||m.author}</div><div class="text-[11px] text-black/60">@${m.author}</div></div>`;
+  // media
+  const host = byId('moment-media'); host.innerHTML = m.kind==='video' ? `<video src="${m.media_url}" class="max-h-[70vh] w-full object-contain" controls playsinline></video>` : `<img src="${m.media_url}" class="max-h-[70vh] w-full object-contain" />`;
+  byId('moment-caption').textContent = m.caption||'';
+  // engagement
+  await ensureEngagement('moments', id);
+  await refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') });
+  byId('moment-like-btn').onclick = async ()=>{ await toggleLike('moments', id); refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') }); };
+  byId('moment-comment-send').onclick = async ()=>{ const input = byId('moment-comment-input'); const text=(input.value||'').trim(); if(!text) return; await addComment('moments', id, text); input.value=''; refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') }); };
+  showMoment();
 }
-
-// Hook into poster to also update index (wrap postOneMomentFromFile)
-const _postOneMomentFromFile = postOneMomentFromFile;
-postOneMomentFromFile = async function(file, common){ const meta = await _postOneMomentFromFile(file, common); await prependToIndex(meta); return meta; };
 
 // ================================
 //  DMs (single thread file per pair)
 // ================================
 let DM_OTHER = null; function pairKey(a,b){ return [a,b].sort().join('__'); }
-
-async function loadPeople(){
-  const q = (byId('dm-search').value||'').toLowerCase(); let list = [];
-  try{ const arr = await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const p = await (await fetch(it.download_url)).json(); list.push(p); }catch{} } } }catch{}
-  const meLogin = state.me?.login; list = list.filter(p=> p.login !== meLogin).filter(p=> [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q));
-  const host = byId('dm-people'); host.innerHTML='';
-  list.forEach(u=>{ const row = document.createElement('button'); row.className='w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center gap-2';
-    row.innerHTML = `<div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
-      <div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
-      <div class="text-[11px] text-black/60">@${u.login}</div></div>`; row.onclick = ()=>{ DM_OTHER = u; renderDM(); }; host.appendChild(row); });
-}
+async function loadPeople(){ const q = (byId('dm-search').value||'').toLowerCase(); let list = []; try{ const arr = await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const p = await (await fetch(it.download_url)).json(); list.push(p); }catch{} } } }catch{} const meLogin = state.me?.login; list = list.filter(p=> p.login !== meLogin).filter(p=> [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q)); const host = byId('dm-people'); host.innerHTML=''; list.forEach(u=>{ const row = document.createElement('button'); row.className='w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center gap-2'; row.innerHTML = `<div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div><div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div><div class="text-[11px] text-black/60">@${u.login}</div></div>`; row.onclick = ()=>{ DM_OTHER = u; renderDM(); }; host.appendChild(row); }); }
 byId('dm-search').addEventListener('input', loadPeople);
-
 async function readThread(a,b){ const key = pairKey(a,b); const path = `dms/${key}.json`; try{ return await (await fetch(rawURL(path))).json(); }catch{ return { key, messages:[] }; } }
 async function writeThread(a,b,thread){ const key = pairKey(a,b); const path = `dms/${key}.json`; await upsertText(path, JSON.stringify(thread,null,2), `dm ${key}`); }
-
-async function renderDM(){
-  const me = state.me; const hdr = byId('dm-header'); const log = byId('dm-log'); const send = byId('dm-send');
-  if(!me || !DM_OTHER){ hdr.textContent='Pick a person to chat.'; log.innerHTML=''; send.disabled=true; return; }
-  hdr.textContent = `Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle||DM_OTHER.login})`;
-  send.disabled=false; const thread = await readThread(me.login, DM_OTHER.login);
-  log.innerHTML = (thread.messages||[]).map(m=>`
-    <div class="mb-2 ${m.from===me.login?'text-right':''}">
-      <div class="inline-block rounded-xl px-3 py-2 text-sm ${m.from===me.login?'bg-sky-100':'bg-white/70'}">${m.text}</div>
-      <div class="text-[10px] text-black/50">${new Date(m.ts).toLocaleString()}</div>
-    </div>`).join('');
-  log.scrollTop = log.scrollHeight;
-}
-
-byId('dm-send').onclick = async ()=>{
-  const me = state.me; if(!me || !DM_OTHER) return alert('Pick someone');
-  const input = byId('dm-msg'); const text = (input.value||'').trim(); if(!text) return;
-  const thread = await readThread(me.login, DM_OTHER.login); thread.messages = thread.messages||[];
-  thread.messages.push({ id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, from: me.login, to: DM_OTHER.login, text, ts: Date.now() });
-  await writeThread(me.login, DM_OTHER.login, thread); input.value=''; await renderDM();
-};
+async function renderDM(){ const me = state.me; const hdr = byId('dm-header'); const log = byId('dm-log'); const send = byId('dm-send'); if(!me || !DM_OTHER){ hdr.textContent='Pick a person to chat.'; log.innerHTML=''; send.disabled=true; return; } hdr.textContent = `Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle||DM_OTHER.login})`; send.disabled=false; const thread = await readThread(me.login, DM_OTHER.login); log.innerHTML = (thread.messages||[]).map(m=>`<div class="mb-2 ${m.from===me.login?'text-right':''}"><div class="inline-block rounded-xl px-3 py-2 text-sm ${m.from===me.login?'bg-sky-100':'bg-white/70'}">${m.text}</div><div class="text-[10px] text-black/50">${new Date(m.ts).toLocaleString()}</div></div>`).join(''); log.scrollTop = log.scrollHeight; }
+byId('dm-send').onclick = async ()=>{ const me = state.me; if(!me || !DM_OTHER) return alert('Pick someone'); const input = byId('dm-msg'); const text = (input.value||'').trim(); if(!text) return; const thread = await readThread(me.login, DM_OTHER.login); thread.messages = thread.messages||[]; thread.messages.push({ id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, from: me.login, to: DM_OTHER.login, text, ts: Date.now() }); await writeThread(me.login, DM_OTHER.login, thread); input.value=''; await renderDM(); };
 
 // ================================
 //  Admin (client-side, repo-based)
 // ================================
-async function renderAdmin(){
-  const btn = byId('adminTabBtn'); btn.classList.toggle('hidden', !state.isAdmin); if(!state.isAdmin) return;
-  let users=[]; try{ const arr = await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ users.push(await (await fetch(it.download_url)).json()); }catch{} } } }catch{}
-  let moments=0; try{ const arr = await ghGet('moments'); moments = Array.isArray(arr)? arr.length:0; }catch{}
-  let stories=0; try{ const arr = await ghGet('stories'); const now = Date.now(); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const s = await (await fetch(it.download_url)).json(); if(new Date(s.expires_at).getTime()>now) stories++; }catch{} } } }catch{}
-  byId('adm-metrics').innerHTML = `<div>Total users: ${users.length}</div><div>Moments: ${moments}</div><div>Stories (active): ${stories}</div>`;
-
-  const q = (byId('adm-search').value||'').toLowerCase(); const host = byId('adm-users'); host.innerHTML='';
-  users.filter(u=>[u.name,u.handle,u.login].join(' ').toLowerCase().includes(q)).forEach(u=>{
-    const row = document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between';
-    row.innerHTML = `
-      <div>
-        <div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
-        <div class="text-xs text-black/60">@${u.login} • ${u.role||'user'} • ${u.status||'active'}</div>
-      </div>
-      <div class="flex gap-2">
-        <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="role" data-id="${u.login}">${u.role==='admin'?'Demote':'Promote'}</button>
-        <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="suspend" data-id="${u.login}">${u.status==='suspended'?'Unsuspend':'Suspend'}</button>
-      </div>`; host.appendChild(row);
-  });
-
-  host.onclick = async (e)=>{
-    const btn = e.target.closest('[data-act]'); if(!btn) return; const login = btn.dataset.id; const act = btn.dataset.act;
-    const ppath = `profiles/${login}.json`; let prof=null; try{ prof = await (await fetch(rawURL(ppath))).json(); }catch{}
-    if(!prof) return alert('Profile missing'); if(act==='role') prof.role = (prof.role==='admin'?'user':'admin'); if(act==='suspend') prof.status = (prof.status==='suspended'?'active':'suspended');
-    await upsertText(ppath, JSON.stringify(prof,null,2), `admin update ${login}`); await renderAdmin();
-  };
-  byId('adm-search').oninput = renderAdmin;
-}
-
-byId('btn-rebuild-indexes').onclick = async ()=>{
-  if(!state.isAdmin) return alert('Admins only');
-  let idx = []; try{ const arr = await ghGet('moments'); for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j = await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{} } } }catch{}
-  idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); await writeIndex(IDX.moments, idx, 'rebuild moments index'); sessionStorage.removeItem('mh:index:moments'); toast('Indexes rebuilt');
-};
+async function renderAdmin(){ const btn = byId('adminTabBtn'); btn.classList.toggle('hidden', !state.isAdmin); if(!state.isAdmin) return; let users=[]; try{ const arr = await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ users.push(await (await fetch(it.download_url)).json()); }catch{} } } }catch{} let moments=0; try{ const arr = await ghGet('moments'); moments = Array.isArray(arr)? arr.length:0; }catch{} let stories=0; try{ const arr = await ghGet('stories'); const now = Date.now(); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const s = await (await fetch(it.download_url)).json(); if(new Date(s.expires_at).getTime()>now) stories++; }catch{} } } }catch{} byId('adm-metrics').innerHTML = `<div>Total users: ${users.length}</div><div>Moments: ${moments}</div><div>Stories (active): ${stories}</div>`; const q = (byId('adm-search').value||'').toLowerCase(); const host = byId('adm-users'); host.innerHTML=''; users.filter(u=>[u.name,u.handle,u.login].join(' ').toLowerCase().includes(q)).forEach(u=>{ const row = document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between'; row.innerHTML = `<div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div><div class="text-xs text-black/60">@${u.login} • ${u.role||'user'} • ${u.status||'active'}</div></div><div class="flex gap-2"><button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="role" data-id="${u.login}">${u.role==='admin'?'Demote':'Promote'}</button><button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-[11px]" data-act="suspend" data-id="${u.login}">${u.status==='suspended'?'Unsuspend':'Suspend'}</button></div>`; host.appendChild(row); }); host.onclick = async (e)=>{ const btn = e.target.closest('[data-act]'); if(!btn) return; const login = btn.dataset.id; const act = btn.dataset.act; const ppath = `profiles/${login}.json`; let prof=null; try{ prof = await (await fetch(rawURL(ppath))).json(); }catch{} if(!prof) return alert('Profile missing'); if(act==='role') prof.role = (prof.role==='admin'?'user':'admin'); if(act==='suspend') prof.status = (prof.status==='suspended'?'active':'suspended'); await upsertText(ppath, JSON.stringify(prof,null,2), `admin update ${login}`); await renderAdmin(); }; byId('adm-search').oninput = renderAdmin; }
+byId('btn-rebuild-indexes').onclick = async ()=>{ if(!state.isAdmin) return alert('Admins only'); let idx = []; try{ const arr = await ghGet('moments'); for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j = await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{} } } }catch{} idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); await writeIndex(IDX.moments, idx, 'rebuild moments index'); sessionStorage.removeItem('mh:index:moments'); toast('Indexes rebuilt'); };
 
 // ================================
 //  Boot minimal views (placeholders)
 // ================================
-(async ()=>{ /* placeholder to enable keyboard nav even before connect */ })();
+(async ()=>{ /* placeholder for early keybindings if needed */ })();
 </script>
 </body>
-</html>
-
+</html
