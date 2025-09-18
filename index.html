@@ -2027,5 +2027,352 @@ will: (1) make DMs behave WhatsApp-style with unread counts,
 
 })();
 </script>
+<!-- ===== Moments Hub: Instant DMs + Profiles-First Feed + Cross-Browser Video (Drop-in) =====
+Paste this single <script> block just before </body>. It’s idempotent.
+It will:
+1) Make DMs feel instant: optimistic send + fast background refresh for the open chat and unread counts.
+2) Show a horizontal “Profiles” strip at the top of the Feed tab and ensure Moments render strictly below it.
+3) Make videos display well across mobile/desktop browsers and allow audio playback on user interaction.
+-->
+<script>
+(function(){
+  if (window.MH_REALTIME_FIX) return; window.MH_REALTIME_FIX = true;
+
+  // ---------- Tiny helpers ----------
+  const $ = (id)=>document.getElementById(id);
+  const show = (el)=>el && el.classList.remove('hidden');
+  const hide = (el)=>el && el.classList.add('hidden');
+  const on  = (el,ev,fn)=> el && el.addEventListener(ev,fn);
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+  const now = ()=> Date.now();
+
+  // App state fallbacks
+  window.state = window.state || {};
+  state.owner  = state.owner  || 'hunter9201';
+  state.repo   = state.repo   || 'momentshub-data';
+  state.branch = state.branch || 'main';
+  state.token  = state.token  || '';
+  const GH_API = 'https://api.github.com';
+  const RAW = (p)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+  const currentLogin = ()=> (state.user?.login) || (state.me?.login) || null;
+
+  // Basic GitHub helpers (reused if originals exist)
+  async function gh(method, url, body){
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Accept':'application/vnd.github+json',
+        ...(state.token? {Authorization:'Bearer '+state.token}:{}),
+        ...(body? {'Content-Type':'application/json'}:{})
+      },
+      body: body? JSON.stringify(body): undefined
+    });
+    if(!res.ok) throw new Error(`${res.status}: ${await res.text().catch(()=> '')}`);
+    return res.json();
+  }
+  async function ghGetSha(path){
+    try{
+      const j = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`);
+      return j.sha || null;
+    }catch{ return null; }
+  }
+  async function upsertText(path, text, message){
+    const sha = await ghGetSha(path);
+    return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
+      message: message || `update ${path}`,
+      content: btoa(unescape(encodeURIComponent(text))),
+      branch: state.branch,
+      ...(sha? {sha}: {})
+    });
+  }
+
+  // ---------- 1) INSTANT DMs ----------
+  const pairKey = (a,b)=> [a,b].sort().join('__');
+  const READS = {
+    path: (a,b,user)=> `dms_reads/${pairKey(a,b)}_${user}.json`,
+    async set(a,b,user,ts){ try{ await upsertText(this.path(a,b,user), JSON.stringify({user, last_read_ts: ts}, null, 2), `dm read ${pairKey(a,b)} ${user}`); }catch{} },
+    async get(a,b,user){
+      try{
+        const r = await fetch(RAW(this.path(a,b,user)), {cache:'no-store'});
+        if(!r.ok) return {user,last_read_ts:0};
+        return await r.json();
+      }catch{ return {user,last_read_ts:0}; }
+    }
+  };
+  async function readThread(a,b){
+    const path = `dms/${pairKey(a,b)}.json`;
+    try{
+      const r = await fetch(RAW(path), {cache:'no-store'});
+      if(!r.ok) return {key:pairKey(a,b), messages:[]};
+      return await r.json();
+    }catch{ return {key:pairKey(a,b), messages:[]}; }
+  }
+  async function writeThread(a,b,thread){
+    const path = `dms/${pairKey(a,b)}.json`;
+    return upsertText(path, JSON.stringify(thread,null,2), `dm ${pairKey(a,b)}`);
+  }
+
+  // Grab references from the existing UI (if present)
+  let DM_OTHER = null; // {login,name,handle}
+  const dmPeopleEl = $('dm-people');
+  const dmLogEl    = $('dm-log');
+  const dmHeaderEl = $('dm-header');
+  const dmSendBtn  = $('dm-send');
+  const dmMsgIn    = $('dm-msg');
+  const dmSearchIn = $('dm-search');
+
+  // Render people with unread counts
+  async function getAllProfiles(){
+    try{
+      const arr = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/profiles?ref=${state.branch}`);
+      const out = [];
+      for(const it of (arr||[])){
+        if(it.type==='file' && it.name.endsWith('.json')){
+          try{ out.push(await (await fetch(it.download_url, {cache:'no-store'})).json()); }catch{}
+        }
+      }
+      return out;
+    }catch{ return []; }
+  }
+  async function loadPeople(){
+    if(!dmPeopleEl) return;
+    const me = currentLogin();
+    const q = (dmSearchIn?.value || '').toLowerCase();
+    let list = await getAllProfiles();
+    list = list.filter(p => [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q))
+               .filter(p => p.login !== me);
+    dmPeopleEl.innerHTML = '';
+    for(const u of list){
+      // unread = msgs to me after my last_read
+      const t = me ? await readThread(me, u.login) : {messages:[]};
+      const lastRead = me ? ((await READS.get(me, u.login, me)).last_read_ts || 0) : 0;
+      const unread = (t.messages||[]).filter(m=> m.to===me && m.ts>lastRead).length;
+      const row = document.createElement('button');
+      row.className = 'w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center justify-between gap-2';
+      row.innerHTML = `
+        <div class="flex items-center gap-2">
+          <div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
+          <div>
+            <div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
+            <div class="text-[11px] text-black/60">@${u.login}</div>
+          </div>
+        </div>
+        ${unread? `<span class="ml-2 rounded-full bg-emerald-500 text-white text-[11px] px-2 py-0.5">${unread}</span>`:''}
+      `;
+      row.onclick = ()=>{ DM_OTHER = u; renderDM(); };
+      dmPeopleEl.appendChild(row);
+    }
+  }
+  dmSearchIn && on(dmSearchIn, 'input', loadPeople);
+
+  function tickHTML(m, otherReadTs, otherLogin){
+    if(m.to===otherLogin){
+      const read = otherReadTs >= m.ts;
+      return `<span class="tick ${read?'read':'delivered'}">${read? '✓✓':'✓'}</span>`;
+    }
+    return '';
+  }
+
+  async function renderDM(){
+    if(!dmLogEl || !dmHeaderEl || !dmSendBtn) return;
+    const me = currentLogin();
+    if(!me || !DM_OTHER){
+      dmHeaderEl.textContent = 'Pick a person to chat.';
+      dmLogEl.innerHTML = '';
+      dmSendBtn.disabled = true;
+      return;
+    }
+    dmSendBtn.disabled = false;
+    dmHeaderEl.textContent = `Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle||DM_OTHER.login})`;
+
+    const t = await readThread(me, DM_OTHER.login);
+    const otherRead = (await READS.get(me, DM_OTHER.login, DM_OTHER.login)).last_read_ts || 0;
+    dmLogEl.innerHTML = (t.messages||[]).map(m=>{
+      const mine = m.from===me;
+      const bubble = mine? 'bg-sky-100':'bg-white/70';
+      const align  = mine? 'text-right':'';
+      return `
+        <div class="mb-2 ${align}">
+          <div class="inline-flex items-end gap-1">
+            <button class="inline-block rounded-xl px-3 py-2 text-sm ${bubble}" data-delmsg="${m.id}">${m.text}</button>
+            ${mine ? tickHTML(m, otherRead, DM_OTHER.login):''}
+          </div>
+          <div class="text-[10px] text-black/50">${new Date(m.ts).toLocaleString()} • ${m.from}</div>
+        </div>`;
+    }).join('');
+    dmLogEl.scrollTop = dmLogEl.scrollHeight;
+
+    // mark "read" for messages addressed to me
+    const newestToMe = [...(t.messages||[])].reverse().find(m=> m.to===me);
+    if(newestToMe){ await READS.set(me, DM_OTHER.login, me, newestToMe.ts); }
+  }
+
+  // Optimistic send + fast refresh
+  async function sendDM(){
+    const me = currentLogin();
+    if(!me || !DM_OTHER){ alert('Sign into an app account and pick someone first.'); return; }
+    if(!state.token){ alert('Connect with a GitHub PAT that can write to the repo.'); return; }
+    const inp = dmMsgIn; if(!inp) return;
+    const text = (inp.value||'').trim(); if(!text) return;
+
+    // optimistic append
+    const optimistic = { id:`opt_${now()}_${Math.random().toString(36).slice(2)}`, from:me, to:DM_OTHER.login, text, ts: now() };
+    const wrap = document.createElement('div');
+    wrap.className='mb-2 text-right';
+    wrap.innerHTML = `
+      <div class="inline-flex items-end gap-1">
+        <button class="inline-block rounded-xl px-3 py-2 text-sm bg-sky-100 opacity-80">${optimistic.text}</button>
+        <span class="tick">…</span>
+      </div>
+      <div class="text-[10px] text-black/50">Sending… • ${me}</div>`;
+    dmLogEl && dmLogEl.appendChild(wrap);
+    dmLogEl && (dmLogEl.scrollTop = dmLogEl.scrollHeight);
+    inp.value = '';
+
+    // real write
+    try{
+      const t = await readThread(me, DM_OTHER.login);
+      t.messages = t.messages || [];
+      const real = { id:`${now()}_${Math.random().toString(36).slice(2)}`, from:me, to:DM_OTHER.login, text, ts: now() };
+      t.messages.push(real);
+      await writeThread(me, DM_OTHER.login, t);
+      await renderDM(); // replace optimistic with real
+      await loadPeople(); // refresh unread counts
+    }catch(e){
+      wrap.querySelector('.tick').textContent = '✗';
+      wrap.querySelector('.tick').classList.add('text-red-600');
+      wrap.lastElementChild.textContent = 'Failed to send';
+    }
+  }
+  if (dmSendBtn){
+    dmSendBtn.onclick = sendDM;
+    dmSendBtn.disabled = !currentLogin();
+  }
+  if (dmMsgIn){
+    on(dmMsgIn,'keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendDM(); }});
+  }
+
+  // Very-fast background refresh for “instant” feel
+  let dmRefreshTimer = null, peopleRefreshTimer = null;
+  function startRealtime(){
+    stopRealtime();
+    dmRefreshTimer = setInterval(async ()=>{
+      if(document.hidden) return;
+      if(DM_OTHER && currentLogin()){ try{ await renderDM(); }catch{} }
+    }, 1600); // ~1.6s feels snappy without spamming
+    peopleRefreshTimer = setInterval(async ()=>{
+      if(document.hidden) return;
+      try{ await loadPeople(); }catch{}
+    }, 3500);
+  }
+  function stopRealtime(){
+    if(dmRefreshTimer){ clearInterval(dmRefreshTimer); dmRefreshTimer=null; }
+    if(peopleRefreshTimer){ clearInterval(peopleRefreshTimer); peopleRefreshTimer=null; }
+  }
+  on(document, 'visibilitychange', ()=> document.hidden? stopRealtime(): startRealtime());
+  startRealtime();
+
+  // ---------- 2) Profiles strip above Feed (Moments strictly below profiles) ----------
+  // Creates a horizontal, scrollable profiles bar above the feed grid.
+  function ensureProfilesStrip(){
+    const feedWrap = $('tab-feed');
+    const feedGrid = $('feed');
+    if(!feedWrap || !feedGrid) return;
+
+    // Create strip if not present
+    let strip = document.getElementById('profiles-strip');
+    if(!strip){
+      strip = document.createElement('div');
+      strip.id = 'profiles-strip';
+      strip.className = 'rounded-2xl border border-black/10 bg-white/80 p-3 card';
+      strip.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="text-xs uppercase tracking-widest text-black/50">Profiles</div>
+          <div class="chip">Scroll to browse</div>
+        </div>
+        <div id="profiles-row" class="mt-2 flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>`;
+      // Insert strip BEFORE the feed grid (and after Stories if present)
+      const stories = document.getElementById('stories-row')?.parentElement || null;
+      if(stories && stories.parentElement===feedWrap){
+        stories.insertAdjacentElement('afterend', strip);
+      }else{
+        feedWrap.insertBefore(strip, feedGrid);
+      }
+    }
+    // Make sure the feed grid stays *after* the profiles strip
+    if(strip.nextElementSibling !== feedGrid){
+      strip.insertAdjacentElement('afterend', feedGrid);
+    }
+  }
+
+  async function renderProfilesRow(){
+    ensureProfilesStrip();
+    const row = document.getElementById('profiles-row');
+    if(!row) return;
+    const profiles = await getAllProfiles();
+    row.innerHTML = profiles.map(p=>`
+      <div class="flex flex-col items-center gap-1">
+        <span class="block h-12 w-12 rounded-full border border-black/10 bg-white grid place-items-center text-xs">${(p.name||p.login).slice(0,1)}</span>
+        <span class="text-[11px] max-w-24 truncate">${p.name||p.login}</span>
+      </div>`).join('');
+  }
+
+  // Re-run after feed reloads to keep order correct
+  const reorderObserver = new MutationObserver(()=> ensureProfilesStrip());
+  reorderObserver.observe(document.body, {childList:true, subtree:true});
+
+  // ---------- 3) Cross-browser video (with audio when user interacts) ----------
+  function enhanceVideo(v){
+    if(!v || v.dataset.mhVideoEnhanced) return;
+    v.dataset.mhVideoEnhanced = '1';
+
+    // Mobile inline playback
+    v.setAttribute('playsinline','');
+    v.setAttribute('webkit-playsinline','');
+    v.setAttribute('x5-playsinline',''); // some Android webviews
+
+    // Default behavior: allow audio when user taps (autoplay with sound is blocked)
+    // If video appears inside feed/vertical cards, start muted until user interacts.
+    if(!v.hasAttribute('controls')) v.setAttribute('controls',''); // show controls for user audio control
+    if(!v.hasAttribute('preload'))  v.setAttribute('preload','metadata');
+
+    // Keep responsive
+    v.style.maxWidth = '100%';
+    v.style.height   = v.style.height || 'auto';
+    if(!v.style.objectFit) v.style.objectFit = 'cover';
+
+    // If the element had been auto-muted elsewhere, allow unmute on first user click.
+    let interacted = false;
+    on(v, 'play', ()=> { interacted = true; });
+    on(v, 'click', ()=> { try{ if(v.muted && !interacted){ v.muted=false; v.play().catch(()=>{}); } }catch{} });
+  }
+  function enhanceAllVideos(){
+    document.querySelectorAll('video').forEach(enhanceVideo);
+  }
+  const videoObserver = new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      m.addedNodes && m.addedNodes.forEach(n=>{
+        if(n.nodeType===1){
+          if(n.tagName==='VIDEO') enhanceVideo(n);
+          n.querySelectorAll && n.querySelectorAll('video').forEach(enhanceVideo);
+        }
+      });
+    });
+  });
+  videoObserver.observe(document.documentElement, {childList:true, subtree:true});
+  on(window,'resize', enhanceAllVideos);
+  on(window,'orientationchange', enhanceAllVideos);
+  enhanceAllVideos();
+
+  // ---------- Boot ----------
+  (async ()=>{
+    try{ await renderProfilesRow(); }catch{}
+    try{ await loadPeople(); }catch{}
+    // Keep the profiles strip populated every so often (new users)
+    setInterval(()=> renderProfilesRow().catch(()=>{}), 15000);
+  })();
+
+})();
+</script>
 
   </html>
