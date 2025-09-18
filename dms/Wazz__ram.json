@@ -7,6 +7,13 @@
       "to": "Wazz",
       "text": "hello",
       "ts": 1758183323056
+    },
+    {
+      "id": "1758183496368_c14fc20vnna",
+      "from": "Wazz",
+      "to": "ram",
+      "text": "Thanks for the message",
+      "ts": 1758183496368
     }
   ]
 }
