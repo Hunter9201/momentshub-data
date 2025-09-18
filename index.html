@@ -1634,5 +1634,398 @@ byId('btn-rebuild-indexes').onclick = async ()=>{ if(!state.isAdmin) return aler
   await loadVertical().catch(()=>{});
   await restoreAppUser().catch(()=>{});
 })();
+</script><!-- ===== Moments Hub: End-of-Page Fix Pack (Drop-in) =====
+Place this single <script> block right before </body>. It is idempotent and
+will: (1) make DMs behave WhatsApp-style with unread counts,
+(2) wire up Sign In / Register properly, and
+(3) make all videos phone-friendly (responsive, inline playback).
+-->
+<script>
+(function(){
+  if (window.MH_FIXPACK_APPLIED) return; // idempotent
+  window.MH_FIXPACK_APPLIED = true;
+
+  // ---------- Tiny DOM helpers ----------
+  const $ = (id)=> document.getElementById(id);
+  const show = (el)=> el && el.classList.remove('hidden');
+  const hide = (el)=> el && el.classList.add('hidden');
+  const on  = (el, ev, fn)=> el && el.addEventListener(ev, fn);
+  const toast = (msg)=>{ const t=document.createElement('div'); t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); };
+
+  // ---------- Ensure global state defaults ----------
+  window.state = window.state || {};
+  state.owner  = state.owner  || 'hunter9201';
+  state.repo   = state.repo   || 'momentshub-data';
+  state.branch = state.branch || 'main';
+  state.token  = state.token  || '';        // requires write for DM/profile changes
+  state.me     = state.me     || null;      // connected GitHub user (optional)
+  state.user   = state.user   || null;      // app account (preferred identity)
+
+  const GH_API = 'https://api.github.com';
+  const rawURL = (p)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+
+  // ---------- GitHub helpers (safe fallbacks) ----------
+  async function gh(method, url, body){
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        ...(state.token ? {Authorization: 'Bearer '+state.token} : {}),
+        ...(body ? {'Content-Type':'application/json'} : {})
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok){
+      let txt=''; try{ txt = await res.text(); }catch{}
+      throw new Error(`${res.status}: ${txt}`);
+    }
+    return res.json();
+  }
+  async function ghGetSha(path){
+    try{
+      const j = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`);
+      return j.sha || null;
+    }catch{ return null; }
+  }
+  async function upsertText(path, text, message){
+    const sha = await ghGetSha(path);
+    return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
+      message: message || `update ${path}`,
+      content: btoa(unescape(encodeURIComponent(text))),
+      branch: state.branch,
+      ...(sha? {sha}: {})
+    });
+  }
+  async function listDir(path){
+    try{
+      const arr = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`);
+      return Array.isArray(arr) ? arr : [];
+    }catch{ return []; }
+  }
+  async function ensureDirs(){
+    const mk = async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`);}catch{} };
+    await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media');
+    await mk('dms'); await mk('dms_reads'); await mk('indexes');
+    await mk('engagement/moments'); await mk('engagement/stories');
+  }
+
+  // ---------- Identity helpers ----------
+  const currentLogin = ()=> (state.user?.login) || (state.me?.login) || null;
+
+  // ---------- Phone-friendly videos (responsive + inline) ----------
+  function enhanceVideo(v){
+    if (!v || v.dataset.mhEnhanced) return;
+    v.dataset.mhEnhanced = '1';
+    // inline playback for iOS
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    // never force fullscreen on mobile unless author set controls
+    if (!v.hasAttribute('muted')) v.muted = true;        // grid/auto videos default muted
+    if (!v.hasAttribute('preload')) v.preload = 'metadata';
+    // responsiveness
+    v.style.maxWidth = '100%';
+    v.style.height = v.style.height || 'auto';
+    // if inside 9:16 or 4:5 containers, let object-fit contain for viewers
+    if (!v.style.objectFit) v.style.objectFit = 'cover';
+    // tap-to-play for muted loops
+    on(v, 'click', ()=>{ try{ v.paused ? v.play() : v.pause(); }catch{} });
+  }
+  function enhanceAllVideos(){
+    document.querySelectorAll('video').forEach(enhanceVideo);
+  }
+  const mo = new MutationObserver((muts)=>{
+    for (const m of muts){
+      m.addedNodes && m.addedNodes.forEach(n=>{
+        if (n.nodeType===1){
+          if (n.tagName==='VIDEO') enhanceVideo(n);
+          n.querySelectorAll && n.querySelectorAll('video').forEach(enhanceVideo);
+        }
+      });
+    }
+  });
+  mo.observe(document.documentElement, {childList:true, subtree:true});
+  on(window, 'orientationchange', enhanceAllVideos);
+  on(window, 'resize', enhanceAllVideos);
+  // initial pass
+  enhanceAllVideos();
+
+  // ---------- WhatsApp-style DMs ----------
+  const pairKey = (a,b)=> [a,b].sort().join('__');
+  const READS = {
+    path: (a,b,user)=> `dms_reads/${pairKey(a,b)}_${user}.json`,
+    async set(a,b,user,ts){ await upsertText(this.path(a,b,user), JSON.stringify({user, last_read_ts: ts}, null, 2), `dm read ${pairKey(a,b)} ${user}`); },
+    async get(a,b,user){
+      try{
+        const res = await fetch(rawURL(this.path(a,b,user)), {cache:'no-store'});
+        if (!res.ok) return {user, last_read_ts: 0};
+        return await res.json();
+      }catch{ return {user, last_read_ts: 0}; }
+    }
+  };
+  async function readThread(a,b){
+    const path = `dms/${pairKey(a,b)}.json`;
+    try{
+      const res = await fetch(rawURL(path), {cache:'no-store'});
+      if (!res.ok) return {key: pairKey(a,b), messages: []};
+      return await res.json();
+    }catch{ return {key: pairKey(a,b), messages: []}; }
+  }
+  async function writeThread(a,b,thread){
+    const path = `dms/${pairKey(a,b)}.json`;
+    await upsertText(path, JSON.stringify(thread, null, 2), `dm ${pairKey(a,b)}`);
+  }
+
+  // Load list of all profiles (users)
+  async function getAllProfiles(){
+    const arr = await listDir('profiles');
+    const out = [];
+    for (const it of arr){
+      if (it.type==='file' && it.name.endsWith('.json')){
+        try{
+          const p = await (await fetch(it.download_url, {cache:'no-store'})).json();
+          out.push(p);
+        }catch{}
+      }
+    }
+    return out;
+  }
+
+  let DM_OTHER = null;
+
+  async function loadPeople(){
+    const my = currentLogin();
+    const host = $('dm-people'); if (!host) return;
+    host.innerHTML = '';
+    const q = (($('dm-search')?.value)||'').toLowerCase();
+
+    const list = (await getAllProfiles())
+      .filter(p => [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q))
+      .filter(p => p.login !== my);
+
+    for (const u of list){
+      // unread count (messages sent to me after my last_read)
+      const thread = my ? await readThread(my, u.login) : {messages: []};
+      const lastRead = my ? ((await READS.get(my, u.login, my)).last_read_ts || 0) : 0;
+      const unread = (thread.messages||[]).filter(m => m.to===my && m.ts > lastRead).length;
+
+      const row = document.createElement('button');
+      row.className = 'w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center justify-between gap-2';
+      row.innerHTML = `
+        <div class="flex items-center gap-2">
+          <div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
+          <div>
+            <div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
+            <div class="text-[11px] text-black/60">@${u.login}</div>
+          </div>
+        </div>
+        ${unread ? `<span class="ml-2 rounded-full bg-emerald-500 text-white text-[11px] px-2 py-0.5">${unread}</span>` : ''}
+      `;
+      row.onclick = ()=>{ DM_OTHER = u; renderDM(); };
+      host.appendChild(row);
+    }
+  }
+  on($('dm-search'), 'input', loadPeople);
+
+  function tickHTML(m, otherLastRead, otherLogin){
+    // ✓ = delivered (saved), ✓✓ = read by other
+    if (m.to === otherLogin){
+      const read = otherLastRead >= m.ts;
+      return `<span class="tick ${read ? 'read' : 'delivered'}">${read ? '✓✓' : '✓'}</span>`;
+    }
+    return '';
+  }
+
+  async function renderDM(){
+    const me = currentLogin(); const host = $('dm-log'); const hdr = $('dm-header'); const send = $('dm-send');
+    if (!host || !hdr || !send){
+      // UI not present; nothing to render
+      return;
+    }
+    if (!me || !DM_OTHER){
+      hdr.textContent = 'Pick a person to chat.';
+      host.innerHTML = '';
+      send.disabled = true;
+      return;
+    }
+    send.disabled = false;
+    hdr.textContent = `Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle || DM_OTHER.login})`;
+
+    const thread = await readThread(me, DM_OTHER.login);
+    const otherRead = (await READS.get(me, DM_OTHER.login, DM_OTHER.login)).last_read_ts || 0;
+
+    host.innerHTML = (thread.messages||[]).map(m=>{
+      const mine = m.from === me;
+      const bubble = mine ? 'bg-sky-100' : 'bg-white/70';
+      const align  = mine ? 'text-right' : '';
+      return `
+        <div class="mb-2 ${align}">
+          <div class="inline-flex items-end gap-1">
+            <button class="inline-block rounded-xl px-3 py-2 text-sm ${bubble}" data-delmsg="${m.id}">${m.text}</button>
+            ${mine ? tickHTML(m, otherRead, DM_OTHER.login) : ''}
+          </div>
+          <div class="text-[10px] text-black/50">${new Date(m.ts).toLocaleString()} • ${m.from}</div>
+        </div>
+      `;
+    }).join('');
+    host.scrollTop = host.scrollHeight;
+
+    // mark as read for me
+    const newestToMe = [...(thread.messages||[])].reverse().find(m => m.to===me);
+    if (newestToMe){
+      await READS.set(me, DM_OTHER.login, me, newestToMe.ts);
+    }
+
+    // delete on tap (own messages only)
+    host.onclick = async (e)=>{
+      const btn = e.target.closest('[data-delmsg]'); if (!btn) return;
+      const id = btn.getAttribute('data-delmsg');
+      const mine = btn.parentElement.parentElement.classList.contains('text-right');
+      if (!mine) { toast('You can delete only your messages'); return; }
+      const t = await readThread(me, DM_OTHER.login);
+      t.messages = (t.messages||[]).filter(x => x.id !== id);
+      await writeThread(me, DM_OTHER.login, t);
+      await renderDM();
+    };
+  }
+
+  // Send action
+  async function sendDM(){
+    const me = currentLogin();
+    if (!me || !DM_OTHER){ alert('Sign into an app account and pick someone first.'); return; }
+    if (!state.token){ alert('Connect with a GitHub PAT (contents: read & write) to send messages.'); return; }
+    await ensureDirs();
+
+    const input = $('dm-msg'); if (!input) return;
+    const text = (input.value||'').trim(); if (!text) return;
+
+    const thread = await readThread(me, DM_OTHER.login);
+    thread.messages = thread.messages || [];
+    const msg = { id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, from: me, to: DM_OTHER.login, text, ts: Date.now() };
+    thread.messages.push(msg);
+    await writeThread(me, DM_OTHER.login, thread);
+    input.value = '';
+    await renderDM();
+    await loadPeople(); // refresh unread counts
+  }
+  const dmSendBtn = $('dm-send');
+  if (dmSendBtn){
+    dmSendBtn.disabled = true;
+    dmSendBtn.onclick = sendDM;
+  }
+  const dmMsg = $('dm-msg');
+  if (dmMsg){
+    on(dmMsg, 'keydown', (e)=>{ if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendDM(); }});
+  }
+
+  // ---------- Sign In / Register wiring ----------
+  async function sha256Hex(s){
+    if (window.crypto?.subtle){
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest('SHA-256', enc.encode(s));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    // fallback (non-crypto)
+    let h=0; for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return String(h);
+  }
+
+  function renderAppBox(){
+    const box = $('appacct-box'); const outBtn = $('signOutBtn');
+    if (!box) return;
+    if (state.user){
+      box.innerHTML = `Signed in as <strong>@${state.user.login}</strong> (<span class="text-black/70">${state.user.name||state.user.login}</span>)`;
+      outBtn && outBtn.classList.remove('hidden');
+    }else{
+      box.textContent = 'Not signed in to an app account.';
+      outBtn && outBtn.classList.add('hidden');
+    }
+    if ($('pf-name'))   $('pf-name').value   = state.user?.name   || '';
+    if ($('pf-handle')) $('pf-handle').value = state.user?.handle || '';
+  }
+
+  async function restoreAppUser(){
+    const saved = sessionStorage.getItem('mh:appUser');
+    if (saved){
+      try{
+        const res = await fetch(rawURL(`profiles/${saved}.json`), {cache:'no-store'});
+        if (res.ok) state.user = await res.json();
+      }catch{}
+    }
+    renderAppBox();
+  }
+
+  async function doRegister(){
+    if (!state.token){ alert('Connect to GitHub first (PAT with Contents: Read & Write).'); return; }
+    await ensureDirs();
+    const login  = ($('rg-login')?.value || '').trim();
+    const name   = ($('rg-name')?.value  || '').trim() || login;
+    const handle = ($('rg-handle')?.value|| '').trim() || null;
+    const pin    = ($('rg-pin')?.value   || '').trim();
+    if (!login || !pin){ alert('Username & PIN are required.'); return; }
+    // check exists
+    try{
+      const res = await fetch(rawURL(`profiles/${login}.json`), {cache:'no-store'});
+      if (res.ok){ alert('Username already exists.'); return; }
+    }catch{}
+    const pin_hash = await sha256Hex(pin);
+    const prof = { login, name, handle, role:'user', status:'active', created_at: new Date().toISOString(), auth: { pin_hash } };
+    await upsertText(`profiles/${login}.json`, JSON.stringify(prof, null, 2), `register profile ${login}`);
+    state.user = prof; sessionStorage.setItem('mh:appUser', login);
+    renderAppBox(); hide($('register-modal')); toast('Account created & signed in');
+    await loadPeople();
+  }
+
+  async function doSignIn(){
+    if (!state.token){ alert('Connect to GitHub first (PAT with Contents: Read & Write).'); return; }
+    const login = ($('si-login')?.value || '').trim();
+    const pin   = ($('si-pin')?.value   || '').trim();
+    if (!login || !pin){ alert('Enter username and PIN.'); return; }
+    try{
+      const res = await fetch(rawURL(`profiles/${login}.json`), {cache:'no-store'});
+      if (!res.ok){ alert('Account not found.'); return; }
+      const prof = await res.json();
+      if (!prof?.auth?.pin_hash){ alert('This account has no PIN set. Use Register instead.'); return; }
+      const pin_hash = await sha256Hex(pin);
+      if (pin_hash !== prof.auth.pin_hash){ alert('Invalid PIN.'); return; }
+      state.user = prof; sessionStorage.setItem('mh:appUser', login);
+      renderAppBox(); hide($('signin-modal')); toast('Signed in');
+      await loadPeople();
+    }catch(e){
+      alert('Sign in failed.\n\n'+(e?.message||e));
+    }
+  }
+
+  function bindAuthUI(){
+    const openIn  = $('openSignInBtn');
+    const openReg = $('openRegisterBtn');
+    const closeIn = $('closeSigninBtn');
+    const closeRg = $('closeRegisterBtn');
+    const goIn    = $('si-go');
+    const goReg   = $('rg-go');
+    const outBtn  = $('signOutBtn');
+
+    openIn  && (openIn.onclick  = ()=> show($('signin-modal')));
+    openReg && (openReg.onclick = ()=> show($('register-modal')));
+    closeIn && (closeIn.onclick = ()=> hide($('signin-modal')));
+    closeRg && (closeRg.onclick = ()=> hide($('register-modal')));
+    goIn    && (goIn.onclick    = doSignIn);
+    goReg   && (goReg.onclick   = doRegister);
+    outBtn  && (outBtn.onclick  = ()=>{ state.user=null; sessionStorage.removeItem('mh:appUser'); renderAppBox(); toast('Signed out'); });
+
+    $('si-pin') && on($('si-pin'), 'keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doSignIn(); }});
+    $('rg-pin') && on($('rg-pin'), 'keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doRegister(); }});
+  }
+
+  // ---------- Boot ----------
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    try{ bindAuthUI(); await restoreAppUser(); }catch{}
+    try{ await loadPeople(); }catch{}
+    // If host app exposes loaders, refreshing them after auth improves UX
+    // (They'll no-op if not present)
+    const tryCall = async (fn)=>{ try{ if (typeof window[fn]==='function') await window[fn](); }catch{} };
+    await tryCall('loadStories'); await tryCall('loadFeed'); await tryCall('loadVertical');
+  });
+
+})();
 </script>
+
   </html>
