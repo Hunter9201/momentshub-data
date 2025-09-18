@@ -22,6 +22,25 @@
     .progress-bar{display:flex;gap:.25rem}
     .progress-seg{flex:1;height:3px;background:rgba(255,255,255,.35);border-radius:999px;overflow:hidden}
     .progress-seg>span{display:block;height:100%;width:0;background:white}
+
+    /* Fancy feed grid */
+    #feed{grid-auto-rows:1px}
+    .m-card{--h:420; grid-row: span var(--span, 420)}
+    .m-media{transition:transform .25s ease}
+    .m-card:hover .m-media{transform:scale(1.015)}
+
+    /* DM ticks */
+    .tick{font-size:11px;margin-left:.25rem;opacity:.6}
+    .tick.read{color:#0ea5e9;opacity:1}
+    .tick.delivered{opacity:.8}
+
+    /* Swipe-down hint */
+    .swipe-hint{position:absolute;left:50%;transform:translateX(-50%);top:8px;
+      background:rgba(255,255,255,.14);backdrop-filter:blur(6px);padding:.25rem .5rem;border-radius:999px;font-size:12px}
+
+    /* Editor controls */
+    .range{appearance:none;width:100%;height:4px;border-radius:999px;background:#e5e7eb;outline:none}
+    .range::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:999px;background:#111827;cursor:pointer}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -64,21 +83,18 @@
   <!-- STATUS BAR -->
   <div class="bg-amber-50 border-b border-amber-200">
     <div class="mx-auto max-w-6xl px-4 py-2 text-[12px] text-amber-900 flex items-center justify-between gap-3">
-      <div id="conn-status" class="truncate">Not connected. Tap <strong>Connect</strong> and use a fine-grained token.</div>
-      <div class="hidden sm:block text-black/60"><em>Token stays in-memory only.</em></div>
+      <div id="conn-status" class="truncate">Not connected. Tap <strong>Connect</strong> and enter your PAT.</div>
+      <div class="hidden sm:block text-black/60"><em>Owner/repo default to <code>hunter9201/momentshub-data</code>.</em></div>
     </div>
   </div>
 
   <main class="mx-auto max-w-6xl px-4 py-6 space-y-8 pb-32 md:pb-8">
     <!-- FEED -->
     <section id="tab-feed" class="space-y-6">
-      <!-- Toolbar (Compose, Story, Studio Pro) -->
+      <!-- Toolbar -->
       <div class="flex flex-wrap gap-2 justify-end">
         <button id="openComposeBtn" class="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm">➕ Moment</button>
-        <label class="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm cursor-pointer">
-          📸 Story
-          <input id="story-files" type="file" accept="video/*,image/*" class="hidden" multiple>
-        </label>
+        <button id="openStoryComposeBtn" class="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm">📸 Story</button>
         <button id="openStudioBtn" class="rounded-full border border-fuchsia-200 bg-white/80 px-4 py-2 text-xs font-semibold shadow-sm">🎬 Studio Pro</button>
       </div>
 
@@ -86,13 +102,14 @@
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between gap-2">
           <div class="text-xs uppercase tracking-widest text-black/50">Stories (48-hour)</div>
-          <div class="chip">Tap to view</div>
+          <div class="chip">Tap to view • Swipe down to close</div>
         </div>
         <div id="stories-row" class="mt-3 flex gap-3 overflow-x-auto pb-2 no-scrollbar"></div>
       </div>
 
-      <!-- IG-style feed: single column -->
-      <div id="feed" class="grid grid-cols-1 gap-4"></div>
+      <!-- Feed: upgraded responsive grid -->
+      <div id="feed" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div id="feed-more-wrap" class="flex justify-center"></div>
     </section>
 
     <!-- MOMENTS (vertical viewer) -->
@@ -100,7 +117,9 @@
       <div class="rounded-2xl border border-black/10 bg-white/80 p-0 card">
         <div class="flex items-center justify-between p-4">
           <div class="text-xs uppercase tracking-widest text-black/50">For You</div>
-          <div class="flex items-center gap-2 text-xs"><span class="chip">Scroll / swipe</span><span class="chip">J/K = next/prev</span></div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="chip">Scroll / swipe</span><span class="chip">J/K = next/prev</span>
+          </div>
         </div>
         <div id="mom-vertical" class="px-3 pb-4 space-y-4" style="scroll-snap-type:y mandatory; max-height: 80svh; overflow:auto;"></div>
       </div>
@@ -109,18 +128,23 @@
     <!-- DMs -->
     <section id="tab-dms" class="hidden space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- People -->
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
-          <div class="text-xs uppercase tracking-widest text-black/50">Profiles</div>
-          <input id="dm-search" class="mt-2 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Search profiles…">
-          <div id="dm-people" class="mt-2 max-h-80 overflow-y-auto space-y-1 no-scrollbar"></div>
-        </div>
-        <div class="md:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-4 card">
           <div class="flex items-center justify-between">
-            <div id="dm-header" class="text-xs text-black/60">Pick a person to chat.</div>
-            <div class="text-[11px] text-black/50">Tap a bubble to delete your message</div>
+            <div class="text-xs uppercase tracking-widest text-black/50">Chats</div>
+            <div class="text-[11px] text-black/50"><span class="chip">Unread • ✓✓ Read</span></div>
           </div>
-          <div id="dm-log" class="mt-2 h-72 overflow-y-auto rounded-xl border border-black/5 bg-white/70 p-3 no-scrollbar"></div>
-          <div class="mt-2 flex gap-2">
+          <input id="dm-search" class="mt-2 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Search profiles…">
+          <div id="dm-people" class="mt-2 max-h-[26rem] overflow-y-auto space-y-1 no-scrollbar"></div>
+        </div>
+        <!-- Thread -->
+        <div class="md:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-0 card">
+          <div class="flex items-center justify-between p-3 border-b border-black/10">
+            <div id="dm-header" class="text-xs text-black/60">Pick a person to chat.</div>
+            <div class="text-[11px] text-black/50">Tap a bubble to delete • Hold for more</div>
+          </div>
+          <div id="dm-log" class="h-[28rem] md:h-[32rem] overflow-y-auto p-3 no-scrollbar bg-white/70"></div>
+          <div class="p-3 flex gap-2 border-t border-black/10 bg-white/70">
             <input id="dm-msg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Type a message…">
             <button id="dm-send" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm font-semibold" disabled>Send</button>
           </div>
@@ -206,7 +230,7 @@
 
   <!-- MODALS -->
 
-  <!-- GitHub login -->
+  <!-- GitHub login (defaults pre-filled; only PAT needed) -->
   <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
     <div class="w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between">
@@ -214,19 +238,25 @@
         <button id="closeLoginBtn" class="text-black/50">✕</button>
       </div>
       <div class="mt-3 grid gap-2 text-sm">
-        <input id="gh-owner" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Repo owner (GitHub username)">
-        <input id="gh-repo" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Repo name (e.g., momentshub-data)">
+        <div class="grid grid-cols-[1fr_auto] gap-2 items-center">
+          <input id="gh-owner" class="rounded-xl border border-black/10 bg-black/5 px-3 py-2" value="hunter9201" disabled>
+          <button id="gh-adv1" class="text-[11px] px-2 py-1 rounded border border-black/10 bg-white/80">Change</button>
+        </div>
+        <div class="grid grid-cols-[1fr_auto] gap-2 items-center">
+          <input id="gh-repo" class="rounded-xl border border-black/10 bg-black/5 px-3 py-2" value="momentshub-data" disabled>
+          <button id="gh-adv2" class="text-[11px] px-2 py-1 rounded border border-black/10 bg-white/80">Change</button>
+        </div>
         <input id="gh-branch" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" value="main" placeholder="Branch (e.g., main)">
         <input id="gh-token" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="GitHub PAT (repo:contents) — NOT SAVED" type="password">
         <button id="gh-connect" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Connect</button>
-        <div id="gh-msg" class="text-[11px] text-black/60">Token is only kept in memory for this tab.</div>
+        <div id="gh-msg" class="text-[11px] text-black/60">Only your PAT is required. Owner/repo default to <code>hunter9201/momentshub-data</code>.</div>
       </div>
     </div>
   </div>
 
-  <!-- Compose Moments -->
+  <!-- Compose Moments (with embedded editor) -->
   <div id="compose-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
-    <div class="w-full max-w-xl h-[min(90svh,720px)] overflow-auto rounded-2xl border border-black/10 bg-white p-4 card">
+    <div class="w-full max-w-2xl h-[min(90svh,720px)] overflow-auto rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between sticky top-0 bg-white z-10 pb-2">
         <h3 class="text-sm font-semibold">Create Moments</h3>
         <button id="closeComposeBtn" class="text-black/50">✕</button>
@@ -236,12 +266,45 @@
           📤 Drop or select files (images/videos)
           <input id="mom-files" type="file" accept="video/*,image/*" class="hidden" multiple>
         </label>
+
+        <!-- Embedded quick editor notice -->
+        <div class="text-[11px] text-black/60">Tip: click a thumbnail to edit (rotate, flip, brightness, contrast, resize, watermark) before posting.</div>
+
+        <!-- Selected previews -->
+        <div id="mom-previews" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+
         <input id="mom-caption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption (used for all)" />
         <input id="mom-tags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags (comma separated)" />
         <input id="mom-link" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Optional link (https://)" />
+
         <div class="flex items-center justify-between gap-2 sticky bottom-0 bg-white pt-2">
           <div id="mom-progress" class="text-[11px] text-black/60">No files selected.</div>
-          <button id="mom-posts" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Post Selected Files</button>
+          <div class="flex gap-2">
+            <button id="mom-clear" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs">Clear</button>
+            <button id="mom-posts" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Post Selected Files</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compose Stories (with embedded editor) -->
+  <div id="story-compose-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+    <div class="w-full max-w-2xl h-[min(90svh,720px)] overflow-auto rounded-2xl border border-black/10 bg-white p-4 card">
+      <div class="flex items-center justify-between sticky top-0 bg-white z-10 pb-2">
+        <h3 class="text-sm font-semibold">Create Stories</h3>
+        <button id="closeStoryComposeBtn" class="text-black/50">✕</button>
+      </div>
+      <div class="grid gap-2 text-sm">
+        <label class="dropzone rounded-xl border border-black/10 bg-white/80 px-3 py-4 shadow-sm cursor-pointer text-center">
+          🎞️ Select files for stories
+          <input id="story-files" type="file" accept="video/*,image/*" class="hidden" multiple>
+        </label>
+        <div class="text-[11px] text-black/60">Tap a thumbnail to edit before posting. Stories expire in 48 hours.</div>
+        <div id="story-previews" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+        <div class="flex justify-between items-center">
+          <div id="story-status" class="text-[11px] text-black/60">No batch loaded.</div>
+          <button id="story-post" class="rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm">Post Stories</button>
         </div>
       </div>
     </div>
@@ -252,7 +315,10 @@
     <div class="w-full max-w-3xl rounded-2xl border border-black/10 bg-white p-0 card overflow-hidden">
       <div class="flex items-center justify-between px-4 py-2 border-b border-black/10">
         <div class="flex items-center gap-3" id="moment-author"></div>
-        <button id="closeMomentBtn" class="text-black/50 px-2 py-1">✕</button>
+        <div class="flex items-center gap-2">
+          <button id="moment-delete-btn" class="hidden text-red-600 text-sm">🗑 Delete</button>
+          <button id="closeMomentBtn" class="text-black/50 px-2 py-1">✕</button>
+        </div>
       </div>
       <div class="grid grid-cols-1">
         <div class="bg-black/90 text-white p-2" id="moment-media"></div>
@@ -272,16 +338,20 @@
     </div>
   </div>
 
-  <!-- Stories Viewer -->
+  <!-- Stories Viewer (swipe down to close + delete own) -->
   <div id="stories-viewer" class="hidden fixed inset-0 z-50 modal-backdrop">
     <div class="relative w-full h-full">
       <div class="absolute inset-0 flex items-center justify-center">
-        <div class="relative w-[min(420px,96vw)] h-[92svh] rounded-2xl overflow-hidden bg-black text-white">
+        <div id="sv-card" class="relative w-[min(420px,96vw)] h-[92svh] rounded-2xl overflow-hidden bg-black text-white touch-pan-y">
+          <div class="swipe-hint">↓ Swipe down to close</div>
           <div class="absolute top-0 inset-x-0 p-3">
             <div class="progress-bar" id="sv-progress"></div>
             <div class="mt-2 flex items-center justify-between text-sm">
               <div class="flex items-center gap-2" id="sv-header"></div>
-              <button id="sv-close" class="text-white/80">✕</button>
+              <div class="flex items-center gap-2">
+                <button id="sv-delete" class="hidden text-red-400">🗑</button>
+                <button id="sv-close" class="text-white/80">✕</button>
+              </div>
             </div>
           </div>
           <div id="sv-media" class="absolute inset-0 grid place-items-center"></div>
@@ -338,15 +408,15 @@
     </div>
   </div>
 
-  <!-- Studio Pro -->
+  <!-- Studio Pro (kept for power users; also embedded in compose modals) -->
   <div id="studio-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
     <div class="w-full max-w-2xl h-[min(90svh,720px)] overflow-auto rounded-2xl border border-black/10 bg-white p-4 card">
       <div class="flex items-center justify-between sticky top-0 bg-white z-10 pb-2">
-        <h3 class="text-sm font-semibold">Studio Pro (Beta)</h3>
+        <h3 class="text-sm font-semibold">Studio Pro (Batch)</h3>
         <button id="closeStudioBtn" class="text-black/50">✕</button>
       </div>
       <div class="grid gap-3 text-sm">
-        <div class="text-black/70">Batch tools for power users: quick caption presets, tags helper, and bulk posting.</div>
+        <div class="text-black/70">Quick caption presets, tags helper, and bulk posting.</div>
         <label class="dropzone rounded-xl border border-black/10 bg-white/80 px-3 py-4 shadow-sm cursor-pointer text-center">
           🎞️ Select files for a batch
           <input id="studio-files" type="file" accept="video/*,image/*" class="hidden" multiple>
@@ -360,6 +430,52 @@
       </div>
     </div>
   </div>
+
+  <!-- Lightweight Editor Modal (used by Moments/Stories embeds) -->
+  <div id="edit-modal" class="hidden fixed inset-0 z-50 grid place-items-center modal-backdrop p-4">
+    <div class="w-full max-w-3xl rounded-2xl border border-black/10 bg-white p-4 card">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold">Quick Edit</h3>
+        <button id="closeEditBtn" class="text-black/50">✕</button>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4 mt-3">
+        <div class="bg-black/80 rounded-xl grid place-items-center aspect-[4/3]">
+          <canvas id="edit-canvas" class="max-w-full max-h-full"></canvas>
+          <video id="edit-video" class="hidden max-w-full max-h-full" playsinline></video>
+        </div>
+        <div class="text-sm">
+          <div class="grid gap-2">
+            <div class="font-semibold">Transforms</div>
+            <div class="flex flex-wrap gap-2">
+              <button id="ed-rot" class="rounded border border-black/10 px-3 py-1">↻ Rotate 90°</button>
+              <button id="ed-flipH" class="rounded border border-black/10 px-3 py-1">⇋ Flip H</button>
+              <button id="ed-flipV" class="rounded border border-black/10 px-3 py-1">⇵ Flip V</button>
+            </div>
+            <div class="font-semibold mt-2">Adjust</div>
+            <label>Brightness <input id="ed-bright" type="range" min="50" max="150" value="100" class="range"></label>
+            <label>Contrast <input id="ed-contrast" type="range" min="50" max="150" value="100" class="range"></label>
+            <label>Scale <input id="ed-scale" type="range" min="50" max="150" value="100" class="range"></label>
+            <label>Watermark <input id="ed-water" class="rounded-xl border border-black/10 px-2 py-1 w-full" placeholder="optional text"></label>
+            <div id="ed-video-only" class="hidden">
+              <div class="font-semibold mt-2">Video (metadata only)</div>
+              <label>Start (s) <input id="ed-vstart" type="number" min="0" value="0" class="rounded border border-black/10 px-2 py-1 w-24"></label>
+              <label>End (s) <input id="ed-vend" type="number" min="0" value="0" class="rounded border border-black/10 px-2 py-1 w-24"></label>
+              <label class="inline-flex items-center gap-2 mt-1"><input id="ed-vmute" type="checkbox"> Mute</label>
+            </div>
+            <div class="flex justify-end gap-2 mt-3">
+              <button id="ed-reset" class="rounded-full border border-black/10 bg-white px-3 py-1 text-xs">Reset</button>
+              <button id="ed-apply" class="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold">Apply</button>
+            </div>
+            <div class="text-[11px] text-black/60">Edits are applied to images (canvas). Videos store edit metadata and upload original.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================
+PART 2 — CORE SCRIPTS (Utils, GitHub, Stories/Moments/Feed, Connect defaults, Embedded Studio)
+========================= -->
 <script>
 // ===== Utilities & State =====
 const byId = (id)=>document.getElementById(id);
@@ -370,31 +486,36 @@ const modal = byId('modal'), composeModal = byId('compose-modal'),
 
 const state = { owner:'', repo:'', branch:'main', token:'', me:null, isAdmin:false, user:null };
 
+// quick helper so Part 2 works before Part 3 defines currentLogin()
+function currentLogin(){ return state.user?.login || null; }
+
 const show = el => el.classList.remove('hidden');
 const hide = el => el.classList.add('hidden');
 const setStatus = (t, ok=false)=>{ const el = byId('conn-status'); if(el) el.innerHTML = ok? `<span class="text-green-700">${t}</span>`:t; };
 const toast = (msg)=>{ const t=document.createElement('div'); t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); };
 
+// Tabs
 const switchTab = (t)=>{ ['feed','moments','dms','account','admin'].forEach(k=> byId('tab-'+k).classList.toggle('hidden', k!==t)); updateActiveTabs(t); };
 const updateActiveTabs = (active)=> document.querySelectorAll('.tab-btn').forEach(btn=>{
   const on = btn.dataset.tab===active;
   btn.classList.toggle('bg-white', on); btn.classList.toggle('shadow', on); btn.classList.toggle('text-black/70', !on);
 });
-
 document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
 switchTab('feed');
 
 // Buttons
-byId('openLoginBtn').onclick=()=>show(modal); byId('closeLoginBtn').onclick=()=>hide(modal);
-byId('openComposeBtn').onclick=()=>show(composeModal); byId('closeComposeBtn').onclick=()=>hide(composeModal);
+byId('openLoginBtn').onclick=()=>{ presetRepoDefaults(); show(modal); };
+byId('closeLoginBtn').onclick=()=>hide(modal);
+byId('openComposeBtn').onclick=()=>{ openStudio('moment'); }; // open Studio inline for Moments
+byId('closeComposeBtn').onclick=()=>hide(composeModal);
 byId('closeMomentBtn').onclick=()=>hide(momentModal);
-byId('sv-close').onclick=()=>{ stopStoryTimer(); hide(storiesViewer); };
-storiesViewer.addEventListener('click', (e)=>{ if(e.target===storiesViewer){ stopStoryTimer(); hide(storiesViewer);} });
+byId('sv-close').onclick=()=>{ stopStoryTimer(); hide(storiesViewer); resetStoriesDrag(); };
+storiesViewer.addEventListener('click', (e)=>{ if(e.target===storiesViewer){ stopStoryTimer(); hide(storiesViewer); resetStoriesDrag(); } });
 
-byId('fabCompose').onclick=()=>show(composeModal);
-byId('fabStory').onclick=()=> byId('story-files').click();
-byId('fabStudio').onclick=()=>show(studioModal);
-byId('openStudioBtn').onclick=()=>show(studioModal);
+byId('fabCompose').onclick=()=> openStudio('moment');
+byId('fabStory').onclick=()=> triggerStoryPicker();
+byId('fabStudio').onclick=()=> openStudio('moment'); // keep a single entry
+byId('openStudioBtn').onclick=()=> openStudio('moment');
 byId('closeStudioBtn').onclick=()=>hide(studioModal);
 
 // ===== GitHub Client (no backend) =====
@@ -413,10 +534,25 @@ async function ghGetSha(path){ try{ const j=await ghGet(path); return j.sha; }ca
 function bufToBase64(buf){ let binary=''; const bytes=new Uint8Array(buf), chunk=0x8000; for(let i=0;i<bytes.length;i+=chunk){ binary+=String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); } return btoa(binary); }
 async function upsertText(path, text, message){ const sha=await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {message:message||`update ${path}`, content:btoa(unescape(encodeURIComponent(text))), branch:state.branch, ...(sha?{sha}:{})}); }
 async function upsertBinary(path,file,message){ const buf=await file.arrayBuffer(); const content=bufToBase64(buf); const sha=await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {message:message||`upload ${path}`, content, branch:state.branch, ...(sha?{sha}:{})}); }
+// delete (for stories/moments owners)
+async function ghDelete(path, message){ const sha=await ghGetSha(path); if(!sha) throw new Error('Not found'); return gh('DELETE', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {message:message||`delete ${path}`, sha, branch:state.branch}); }
+
 async function ensureDirs(){ const mk=async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`);}catch{} }; await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media'); await mk('dms'); await mk('indexes'); await mk('engagement/moments'); await mk('engagement/stories'); }
 
+// Defaults for Connect: owner/repo preset & fields hidden
+function presetRepoDefaults(){
+  const ownerIn=byId('gh-owner'), repoIn=byId('gh-repo'), branchIn=byId('gh-branch');
+  if(ownerIn){ ownerIn.value='hunter9201'; ownerIn.parentElement.style.display='none'; }
+  if(repoIn){ repoIn.value='momentshub-data'; repoIn.parentElement.style.display='none'; }
+  if(branchIn){ branchIn.value='main'; branchIn.parentElement.style.display='none'; }
+}
+
 byId('gh-connect').onclick = async ()=>{
-  state.owner=byId('gh-owner').value.trim(); state.repo=byId('gh-repo').value.trim(); state.branch=(byId('gh-branch').value.trim()||'main'); state.token=byId('gh-token').value.trim();
+  // use defaults if inputs missing
+  state.owner = (byId('gh-owner')?.value.trim()) || 'hunter9201';
+  state.repo  = (byId('gh-repo')?.value.trim())  || 'momentshub-data';
+  state.branch= (byId('gh-branch')?.value.trim())|| 'main';
+  state.token = byId('gh-token').value.trim();
   const msg=byId('gh-msg');
   try{
     const ures=await fetch(`${GH_API}/user`,{headers: state.token? {Authorization:'Bearer '+state.token}:{}}); if(!ures.ok) throw new Error('Invalid token or network');
@@ -424,7 +560,7 @@ byId('gh-connect').onclick = async ()=>{
     setStatus(`Connected as <strong>@${me.login}</strong>. Repo: <code>${state.owner}/${state.repo}@${state.branch}</code>`, true);
     msg.textContent='Connected ✓'; hide(modal);
     await ensureDirs(); await ensureProfile(me.login); await loadAdminStatus();
-    await Promise.all([loadFeed(), loadStories(), loadVertical(), loadPeople(), renderProfileBox(), renderAdmin(), restoreAppUser()]);
+    await Promise.all([loadFeed(), loadStories(), loadVertical(), loadPeople?.(), renderProfileBox(), renderAdmin?.(), restoreAppUser?.()]);
     toast('Connected to GitHub');
   }catch(err){ msg.textContent=err.message; setStatus('Not connected. Check your token/repo.'); }
 };
@@ -440,7 +576,6 @@ async function loadAdminStatus(){
     byId('adminTabBtnMobile').classList.toggle('hidden', !state.isAdmin);
   }catch{ byId('adminTabBtn').classList.add('hidden'); byId('adminTabBtnMobile').classList.add('hidden'); state.isAdmin=false; }
 }
-
 async function renderProfileBox(){
   const box=byId('profile-box'); if(!state.me){ box.innerHTML=`<div class="text-black/60">Not connected.</div>`; return; }
   const ppath=`profiles/${state.me.login}.json`; let prof=null; try{ prof=await (await fetch(rawURL(ppath))).json(); }catch{}
@@ -460,31 +595,198 @@ async function addComment(kind,id,text){ if(!currentLogin()) return alert('Sign 
 function renderComments(list){ return (list||[]).slice(-150).map(c=>`<div class="rounded-xl bg-black/5 p-2"><div class="text-[11px] text-black/60">@${c.from} • ${new Date(c.ts).toLocaleString()}</div><div class="text-sm">${c.text}</div></div>`).join(''); }
 async function refreshEngagementUI(kind,id,{likeCountEl, commentCountEl, commentsHost}){ const data=await readEngagement(kind,id); if(likeCountEl) likeCountEl.textContent=data.likes?.length||0; if(commentCountEl) commentCountEl.textContent=data.comments?.length||0; if(commentsHost) commentsHost.innerHTML=renderComments(data.comments); }
 
-// ===== Moments (IG-style single column) =====
+// ===== Embedded Studio (pre-upload adjust) =====
+// Minimal editor: rotate & brightness for images, aspect presets for moment/story
+let STUDIO_MODE = 'moment'; // 'moment' | 'story'
+let STUDIO_FILES = []; // {file, previewURL, rotateDeg, brightness, kind}
+function resetStudio(){
+  STUDIO_FILES=[]; byId('studio-files').value=''; byId('studio-captions').value=''; byId('studio-tags').value='';
+  byId('studio-status').textContent='No batch loaded.';
+}
+function openStudio(mode){
+  STUDIO_MODE = mode || 'moment';
+  show(studioModal);
+  // show helper chip
+  byId('studio-status').textContent = `Editing for ${STUDIO_MODE==='story'?'Stories (9:16)':'Moments (4:5)'}`;
+}
+function triggerStoryPicker(){
+  // open Studio in story mode and forward to hidden file input
+  openStudio('story');
+  const input = document.createElement('input');
+  input.type='file'; input.accept='video/*,image/*'; input.multiple=true;
+  input.onchange = (e)=>{ if(e.target.files?.length){ loadStudioFiles(e.target.files); } };
+  input.click();
+}
+byId('studio-files').onchange = (e)=>{ if(e.target.files?.length){ loadStudioFiles(e.target.files); } };
+
+async function loadStudioFiles(fileList){
+  STUDIO_FILES = Array.from(fileList).map(f=>({file:f, previewURL:URL.createObjectURL(f), rotateDeg:0, brightness:100, kind:(f.type||'').startsWith('video')?'video':'image'}));
+  // auto-fill captions lines equal to files if empty
+  const caps=byId('studio-captions'); if(!caps.value.trim()) caps.value = STUDIO_FILES.map(()=> '').join('\n');
+  renderStudioPreviews();
+  toast(`${STUDIO_FILES.length} file(s) ready. Tap thumbnails to edit.`);
+}
+function renderStudioPreviews(){
+  // draw a lightweight toolbar inside modal header area
+  let grid = byId('studio-grid');
+  if(!grid){
+    const holder = studioModal.querySelector('.grid.gap-3.text-sm');
+    grid = document.createElement('div'); grid.id='studio-grid';
+    grid.className='grid grid-cols-2 sm:grid-cols-3 gap-3';
+    holder.appendChild(grid);
+  }
+  grid.innerHTML = STUDIO_FILES.map((it,idx)=>`
+    <div class="rounded-xl border border-black/10 bg-white/70 overflow-hidden relative">
+      ${it.kind==='video'
+        ? `<video src="${it.previewURL}" class="w-full aspect-[${STUDIO_MODE==='story'?'9/16':'4/5'}] object-cover" muted playsinline loop></video>`
+        : `<img src="${it.previewURL}" class="w-full aspect-[${STUDIO_MODE==='story'?'9/16':'4/5'}] object-cover" style="filter:brightness(${it.brightness}%); transform:rotate(${it.rotateDeg}deg);" />`}
+      <div class="absolute bottom-0 inset-x-0 p-2 bg-white/80 flex items-center justify-between text-[11px]">
+        <div class="flex gap-1">
+          <button data-ed="rot" data-idx="${idx}" class="rounded px-2 py-1 border border-black/10">↻</button>
+          ${it.kind==='image'? `<button data-ed="b-" data-idx="${idx}" class="rounded px-2 py-1 border border-black/10">☀︎−</button>
+          <button data-ed="b+" data-idx="${idx}" class="rounded px-2 py-1 border border-black/10">☀︎+</button>`:''}
+        </div>
+        <button data-ed="rm" data-idx="${idx}" class="rounded px-2 py-1 border border-red-200 text-red-600">Remove</button>
+      </div>
+    </div>
+  `).join('');
+
+  grid.onclick = (e)=>{
+    const btn = e.target.closest('[data-ed]'); if(!btn) return;
+    const idx = +btn.dataset.idx; const ed = btn.dataset.ed; const it = STUDIO_FILES[idx];
+    if(!it) return;
+    if(ed==='rot'){ it.rotateDeg = (it.rotateDeg+90)%360; }
+    if(ed==='b-'){ it.brightness = Math.max(50, it.brightness-10); }
+    if(ed==='b+'){ it.brightness = Math.min(200, it.brightness+10); }
+    if(ed==='rm'){ STUDIO_FILES.splice(idx,1); }
+    renderStudioPreviews();
+  };
+}
+
+// Export helpers (apply rotation/brightness to images)
+async function blobFromImageFile(it){
+  return new Promise((resolve,reject)=>{
+    try{
+      const img = new Image(); img.crossOrigin='anonymous';
+      img.onload = ()=>{
+        const aspect = (STUDIO_MODE==='story')? (9/16) : (4/5);
+        // compute canvas size preserving max dimension (long edge 1080)
+        let w = img.width, h = img.height;
+        // apply rotation canvas
+        const rad = it.rotateDeg * Math.PI/180;
+        const sin = Math.abs(Math.sin(rad)), cos=Math.abs(Math.cos(rad));
+        const rw = Math.round(w*cos + h*sin), rh=Math.round(w*sin + h*cos);
+
+        // crop to target aspect from rotated space
+        let cw = rw, ch = Math.round(rw / aspect);
+        if(ch > rh){ ch = rh; cw = Math.round(ch * aspect); }
+        // final canvas at 1080px on long edge
+        const scale = 1080 / Math.max(cw,ch);
+        const fw = Math.round(cw*scale), fh = Math.round(ch*scale);
+
+        const c = document.createElement('canvas'); c.width=fw; c.height=fh;
+        const ctx = c.getContext('2d');
+        ctx.filter = `brightness(${it.brightness}%)`;
+        ctx.translate(fw/2, fh/2);
+        ctx.rotate(rad);
+        // draw original centered then let browser clip by aspect via precomputed sizes
+        const drawW = Math.round(w*scale), drawH = Math.round(h*scale);
+        ctx.drawImage(img, -drawW/2, -drawH/2, drawW, drawH);
+        c.toBlob((b)=> b? resolve(b):reject(new Error('toBlob failed')), 'image/jpeg', 0.92);
+      };
+      img.onerror = reject;
+      img.src = it.previewURL;
+    }catch(e){ reject(e); }
+  });
+}
+
+// Unified posting for Studio (Moments & Stories)
+async function postStudioBatch(){
+  if(!currentLogin()) return alert('Sign in to an app account first');
+  const tags = parseTags(byId('studio-tags').value);
+  const caps = (byId('studio-captions').value||'').split('\n');
+  const total = STUDIO_FILES.length;
+  if(!total) return alert('No files loaded');
+
+  const st=byId('studio-status'); st.textContent=`Posting 0/${total}…`;
+  let done=0;
+
+  // process with small concurrency
+  const queue = [...STUDIO_FILES].entries();
+  const workers = Array.from({length:3}, async ()=> {
+    for(const [idx,it] of queue){
+      // build a File/Blob to upload (apply edits if image)
+      let fileToSend = it.file;
+      if(it.kind==='image'){ const blob = await blobFromImageFile(it); fileToSend = new File([blob], it.file.name.replace(/\.(png|jpg|jpeg|webp|gif)$/i,'.jpg'), {type:'image/jpeg'}); }
+      if(STUDIO_MODE==='moment'){
+        const meta = await postOneMomentFromFile(fileToSend, {caption: (caps[idx]||'').trim(), tags, link:null});
+        await prependToIndex(meta);
+      }else{
+        await postOneStoryFromFile(fileToSend);
+      }
+      done++; st.textContent=`Posted ${done}/${total}`;
+    }
+  });
+  await Promise.all(workers);
+
+  st.textContent='Batch complete ✓';
+  await loadFeed(); await loadVertical(); await loadStories();
+  hide(studioModal);
+  // clear also compose modal if open
+  hide(composeModal);
+  resetStudio();
+}
+byId('studio-run').onclick = postStudioBatch;
+
+// ===== Moments (enhanced display) =====
+function chip(t){ return `<span class="inline-flex items-center rounded-full bg-black/5 px-2 py-0.5 text-[11px]">${t}</span>`; }
+function cardHTML(m, author, counts={likes:0,
+<!-- =========================
+PART 3 — APP ACCOUNTS, DMS (WhatsApp-style), Stories swipe-to-dismiss & delete, Moments/Feed polish, Admin & Boot
+========================= -->
+<script>
+// ---------- Moments (enhanced display) ----------
+function chip(t){ return `<span class="inline-flex items-center rounded-full bg-black/5 px-2 py-0.5 text-[11px]">${t}</span>`; }
+function timeAgo(ts){
+  const d = new Date(ts||Date.now()); const s = Math.floor((Date.now()-d.getTime())/1000);
+  if(s<60) return `${s}s`; const m=Math.floor(s/60); if(m<60) return `${m}m`;
+  const h=Math.floor(m/60); if(h<24) return `${h}h`;
+  const dd=Math.floor(h/24); if(dd<7) return `${dd}d`;
+  return d.toLocaleDateString();
+}
 function cardHTML(m, author, counts={likes:0,comments:0}){
-  // IG layout: media first, then meta
+  const mine = currentLogin() && currentLogin()===m.author;
   const media = m.kind==='video'
     ? `<video class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" muted playsinline loop></video>`
     : `<img class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" alt="">`;
   return `
-  <article class="rounded-2xl border bg-white shadow p-3" data-moment="${m.id}">
-    <header class="flex items-center justify-between mb-2">
+  <article class="rounded-2xl border bg-white shadow p-0 overflow-hidden group" data-moment="${m.id}">
+    <header class="flex items-center justify-between px-3 pt-3">
       <div class="flex items-center gap-2">
-        <div class="h-8 w-8 rounded-full bg-black/10 grid place-items-center text-xs">${(author?.name||m.author||'—').slice(0,1)}</div>
-        <div class="text-sm font-semibold">${author?.name||m.author}</div>
+        <div class="h-9 w-9 rounded-full bg-gradient-to-br from-sky-200 to-fuchsia-200 grid place-items-center text-xs border border-black/10">${(author?.name||m.author||'—').slice(0,1)}</div>
+        <div>
+          <div class="text-sm font-semibold">${author?.name||m.author}</div>
+          <div class="text-[11px] text-black/50">@${m.author} • ${timeAgo(m.created_at)}</div>
+        </div>
       </div>
-      ${m.link ? `<a href="${m.link}" target="_blank" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🔗</a>` : ``}
+      <div class="flex items-center gap-1">
+        ${m.link ? `<a href="${m.link}" target="_blank" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🔗</a>` : ``}
+        ${mine ? `<button class="rounded-full border border-red-200 bg-white/80 px-3 py-1 text-xs font-semibold text-red-600 shadow-sm" data-delete-moment="${m.id}">Delete</button>`:''}
+      </div>
     </header>
-    <div class="mb-2">${media}</div>
-    <div class="flex items-center gap-3 text-sm mb-2">
+    <div class="mt-3 mx-3 rounded-xl overflow-hidden ring-1 ring-black/5">
+      ${media}
+    </div>
+    <div class="px-3 py-2 flex items-center gap-2 text-sm">
       <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-like-moment="${m.id}">❤️ <span class="like-count">${counts.likes||0}</span></button>
       <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-view="${m.id}">💬 <span class="comment-count">${counts.comments||0}</span></button>
+      <span class="ml-auto text-[11px] text-black/50">${(m.tags||[]).slice(0,3).map(t=>`#${t}`).join(' ')}</span>
     </div>
-    <div class="text-sm"><span class="font-semibold">${author?.name||m.author}</span> ${m.caption||''}</div>
-    ${ (m.tags?.length? `<div class="mt-1 text-xs text-black/60">${m.tags.map(t=>'#'+t).join(' ')}</div>`:'') }
+    <div class="px-3 pb-3 text-sm"><span class="font-semibold">${author?.name||m.author}</span> ${m.caption||''}</div>
   </article>`;
 }
 
+// utilities used by Studio & posting
 async function uploadMedia(file){
   if(!state.me) throw new Error('Connect to GitHub first');
   const ext=(file.name.split('.').pop()||'bin').toLowerCase();
@@ -498,34 +800,10 @@ async function postOneMomentFromFile(file, common){
   const kind=(file.type||'').startsWith('video')?'video':'image';
   const media_url=await uploadMedia(file);
   const id=`${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const meta={ id, author: currentLogin(), kind, caption: common.caption, tags: common.tags, link: common.link, media_url, created_at:new Date().toISOString() };
+  const meta={ id, author: currentLogin(), kind, caption: common.caption, tags: common.tags, link: common.link||null, media_url, created_at:new Date().toISOString() };
   await upsertText(`moments/${id}.json`, JSON.stringify(meta,null,2), `post moment ${id}`);
   await ensureEngagement('moments', id);
   return meta;
-}
-function parseTags(v){ return (v||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean); }
-function limitConcurrency(items,limit,worker){ return new Promise((resolve,reject)=>{ let i=0,active=0,results=[]; const run=()=>{ while(active<limit && i<items.length){ const cur=items[i]; const idx=i; i++; active++; Promise.resolve(worker(cur,idx)).then(r=>results[idx]=r).catch(reject).finally(()=>{ active--; if(i>=items.length&&active===0) resolve(results); else run(); }); } }; run(); }); }
-
-byId('mom-posts').onclick = async ()=>{
-  try{
-    const files=byId('mom-files').files; if(!files?.length) return alert('Select files first');
-    const caption=byId('mom-caption').value.trim(); const tags=parseTags(byId('mom-tags').value); const link=byId('mom-link').value.trim()||null;
-    const total=files.length; let done=0; const prog=byId('mom-progress'); prog.textContent=`Uploading 0/${total}…`;
-    await limitConcurrency(Array.from(files),3, async f=>{ const m=await postOneMomentFromFile(f,{caption,tags,link}); done++; prog.textContent=`Uploaded ${done}/${total}`; await prependToIndex(m); });
-    prog.textContent='Done ✓'; byId('mom-files').value=''; byId('mom-caption').value=''; byId('mom-tags').value=''; byId('mom-link').value='';
-    await loadFeed(); await loadVertical(); hide(composeModal); toast('Moments posted');
-  }catch(err){ alert(err.message); }
-};
-
-// ===== Stories (48h) + Viewer =====
-function storyChipHTML(user,firstStory,name){
-  const media = firstStory.kind==='image'
-    ? `<img src="${firstStory.media_url}" class="h-full w-full object-cover">`
-    : `<video src="${firstStory.media_url}" class="h-full w-full object-cover" muted></video>`;
-  return `<button class="flex flex-col items-center gap-1" data-story-author="${user}">
-    <span class="block h-16 w-16 rounded-full story-ring overflow-hidden">${media}</span>
-    <span class="text-[11px] max-w-24 truncate">${name||user}</span>
-  </button>`;
 }
 async function postOneStoryFromFile(file){
   if(!currentLogin()) throw new Error('Sign in to an app account first');
@@ -536,12 +814,19 @@ async function postOneStoryFromFile(file){
   const s={ id, author: currentLogin(), kind, caption:'', media_url, created_at, expires_at };
   await upsertText(`stories/${id}.json`, JSON.stringify(s,null,2), `add story ${id}`); await ensureEngagement('stories',id); return s;
 }
-byId('story-files').onchange = async (e)=>{
-  try{ const files=Array.from(e.target.files||[]); if(!files.length) return;
-    toast(`Adding ${files.length} stor${files.length>1?'ies':'y'}…`);
-    await limitConcurrency(files,3, postOneStoryFromFile); e.target.value=''; await loadStories(); toast('Stories added');
-  }catch(err){ alert(err.message); }
-};
+function parseTags(v){ return (v||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean); }
+function limitConcurrency(items,limit,worker){ return new Promise((resolve,reject)=>{ let i=0,active=0,results=[]; const run=()=>{ while(active<limit && i<items.length){ const cur=items[i]; const idx=i; i++; active++; Promise.resolve(worker(cur,idx)).then(r=>results[idx]=r).catch(reject).finally(()=>{ active--; if(i>=items.length&&active===0) resolve(results); else run(); }); } }; run(); }); }
+
+// ---------- Stories (list, viewer, swipe-down to dismiss, delete by owner) ----------
+function storyChipHTML(user,firstStory,name){
+  const media = firstStory.kind==='image'
+    ? `<img src="${firstStory.media_url}" class="h-full w-full object-cover">`
+    : `<video src="${firstStory.media_url}" class="h-full w-full object-cover" muted></video>`;
+  return `<button class="flex flex-col items-center gap-1" data-story-author="${user}">
+    <span class="block h-16 w-16 rounded-full story-ring overflow-hidden">${media}</span>
+    <span class="text-[11px] max-w-24 truncate">${name||user}</span>
+  </button>`;
+}
 
 async function listJsonIn(path){
   let items=[]; try{ const arr=await ghGet(path); items=Array.isArray(arr)? arr.filter(x=>x.type==='file' && x.name.endsWith('.json')):[]; }catch{}
@@ -555,21 +840,34 @@ async function loadStories(){
   const live=stories.filter(s=> new Date(s.expires_at).getTime() > now).sort((a,b)=> new Date(a.created_at)-new Date(b.created_at));
   const byAuthor=new Map();
   for(const s of live){ if(!byAuthor.has(s.author)) byAuthor.set(s.author,[]); byAuthor.get(s.author).push(s); }
-  STORY_GROUPS=[]; for(const [author,arr] of byAuthor.entries()){ let prof=null; try{ prof=await (await fetch(rawURL(`profiles/${author}.json`))).json(); }catch{} STORY_GROUPS.push({author, name:prof?.name||author, stories:arr}); }
+  STORY_GROUPS=[]; 
+  for(const [author,arr] of byAuthor.entries()){ let prof=null; try{ prof=await (await fetch(rawURL(`profiles/${author}.json`))).json(); }catch{} STORY_GROUPS.push({author, name:prof?.name||author, stories:arr}); }
   if(!STORY_GROUPS.length){ row.innerHTML=`<div class="text-sm text-black/60">No active stories.</div>`; return; }
   row.innerHTML = STORY_GROUPS.map(g=> storyChipHTML(g.author, g.stories[g.stories.length-1], g.name)).join('');
 }
+async function deleteStory(id){
+  if(!currentLogin()) return alert('Sign in first');
+  // only author can delete
+  // just remove the JSON + engagement; media left to keep history
+  await ghDelete(`stories/${id}.json`, `delete story ${id}`);
+  try{ await ghDelete(`engagement/stories/${id}.json`, `delete story engagement ${id}`);}catch{}
+  toast('Story deleted');
+  hide(storiesViewer); stopStoryTimer(); resetStoriesDrag();
+  await loadStories();
+}
 
-// Viewer
 let svGroup=0, svIdx=0, svTimer=null, svVideo=null;
 const IMG_DURATION=6000;
 function stopStoryTimer(){ if(svTimer){ clearTimeout(svTimer); svTimer=null; } if(svVideo){ try{svVideo.pause();}catch{} svVideo=null; } }
 function startStoryTimer(ms){ stopStoryTimer(); svTimer=setTimeout(()=> nextStory(), ms); animateProgress(ms); }
 function animateProgress(ms){ const segs=byId('sv-progress').querySelectorAll('.progress-seg>span'); const cur=segs[svIdx]; if(cur){ cur.style.transition=`width ${ms}ms linear`; requestAnimationFrame(()=> cur.style.width='100%'); } }
+
 function renderStory(){
   const g=STORY_GROUPS[svGroup]; if(!g) return hide(storiesViewer);
   const s=g.stories[svIdx]; if(!s) return hide(storiesViewer);
-  byId('sv-header').innerHTML=`<div class="h-8 w-8 rounded-full bg-white/20 grid place-items-center text-xs">${g.name.slice(0,1)}</div><div>${g.name} <span class="text-white/60 text-xs">@${g.author}</span></div>`;
+  const mine = currentLogin()===g.author;
+  byId('sv-header').innerHTML=`<div class="h-8 w-8 rounded-full bg-white/20 grid place-items-center text-xs">${g.name.slice(0,1)}</div><div>${g.name} <span class="text-white/60 text-xs">@${g.author}</span></div>
+    ${mine? `<button id="sv-del" class="ml-2 rounded-full px-2 py-1 text-xs bg-white/10 hover:bg-white/20">Delete</button>`:''}`;
   byId('sv-progress').innerHTML = g.stories.map((_,i)=>`<div class="progress-seg"><span style="width:${i<svIdx?'100%':'0'}"></span></div>`).join('');
   const mediaHost=byId('sv-media'); mediaHost.innerHTML=''; const isVid=s.kind==='video';
   if(isVid){ const v=document.createElement('video'); v.src=s.media_url; v.playsInline=true; v.muted=true; v.autoplay=true; v.className='max-h-full max-w-full'; mediaHost.appendChild(v); svVideo=v; v.onloadedmetadata=()=>{ startStoryTimer(v.duration? v.duration*1000: IMG_DURATION); v.play().catch(()=>{}); }; v.onended=()=> nextStory(); }
@@ -578,13 +876,27 @@ function renderStory(){
   refreshEngagementUI('stories', s.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') });
   byId('sv-like-btn').onclick=async ()=>{ await toggleLike('stories', s.id); refreshEngagementUI('stories', s.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') }); };
   byId('sv-comment-send').onclick=async ()=>{ const input=byId('sv-comment-input'); const text=(input.value||'').trim(); if(!text) return; await addComment('stories', s.id, text); input.value=''; refreshEngagementUI('stories', s.id, { likeCountEl: byId('sv-like-count'), commentCountEl: byId('sv-comment-count'), commentsHost: byId('sv-comments') }); };
+  const delBtn = document.getElementById('sv-del'); if(delBtn) delBtn.onclick=()=> deleteStory(s.id);
 }
-function nextStory(){ const g=STORY_GROUPS[svGroup]; if(svIdx<g.stories.length-1){ svIdx++; renderStory(); } else if(svGroup<STORY_GROUPS.length-1){ svGroup++; svIdx=0; renderStory(); } else { hide(storiesViewer); stopStoryTimer(); } }
+
+// swipe/drag down to dismiss like WhatsApp
+let dragStartY=null, dragging=false, dragMax=0;
+function resetStoriesDrag(){ const box = storiesViewer.querySelector('.relative.w-full.h-full'); if(box){ box.style.transform=''; box.style.opacity=''; } dragStartY=null; dragging=false; dragMax=0; }
+storiesViewer.addEventListener('pointerdown', (e)=>{ dragStartY=e.clientY; dragging=true; dragMax=0; storiesViewer.setPointerCapture(e.pointerId); });
+storiesViewer.addEventListener('pointermove', (e)=>{ if(!dragging) return; const dy = Math.max(0, e.clientY - dragStartY); dragMax = Math.max(dragMax, dy);
+  const box = storiesViewer.querySelector('.relative.w-full.h-full'); if(box){ box.style.transform=`translateY(${dy}px)`; box.style.opacity=String(Math.max(0.3, 1 - dy/400)); }
+});
+storiesViewer.addEventListener('pointerup', (e)=>{ if(!dragging) return; dragging=false; storiesViewer.releasePointerCapture(e.pointerId);
+  if(dragMax>120){ stopStoryTimer(); hide(storiesViewer); resetStoriesDrag(); }
+  else { const box = storiesViewer.querySelector('.relative.w-full.h-full'); if(box){ box.style.transition='transform .2s, opacity .2s'; box.style.transform=''; box.style.opacity=''; setTimeout(()=>{ box.style.transition=''; }, 250); } }
+});
+
+function nextStory(){ const g=STORY_GROUPS[svGroup]; if(svIdx<g.stories.length-1){ svIdx++; renderStory(); } else if(svGroup<STORY_GROUPS.length-1){ svGroup++; svIdx=0; renderStory(); } else { hide(storiesViewer); stopStoryTimer(); resetStoriesDrag(); } }
 function prevStory(){ if(svIdx>0){ svIdx--; renderStory(); } else if(svGroup>0){ svGroup--; svIdx=STORY_GROUPS[svGroup].stories.length-1; renderStory(); } }
 byId('sv-next').onclick=nextStory; byId('sv-prev').onclick=prevStory;
 byId('stories-row').addEventListener('click', (e)=>{ const btn=e.target.closest('[data-story-author]'); if(!btn) return; const author=btn.getAttribute('data-story-author'); svGroup=STORY_GROUPS.findIndex(g=>g.author===author); svIdx=0; show(storiesViewer); renderStory(); });
 
-// ===== Feed & Vertical (index + pagination) =====
+// ---------- Feed & Vertical (index + pagination, polish) ----------
 const IDX={ moments:'indexes/moments.json' }; let momentsIndex=null, feedCursor=0, vertCursor=0;
 const PAGE_SIZE=10, VERT_PAGE=5;
 
@@ -607,6 +919,20 @@ async function prependToIndex(meta){
   try{ await writeIndex(IDX.moments, idx, 'append moments index'); }catch{} sessionStorage.removeItem('mh:index:moments');
 }
 
+async function deleteMoment(id, author){
+  if(!currentLogin()) return alert('Sign in first');
+  if(currentLogin()!==author && !state.isAdmin) return alert('Only owner/admin can delete');
+  await ghDelete(`moments/${id}.json`, `delete moment ${id}`);
+  try{ await ghDelete(`engagement/moments/${id}.json`, `delete engagement ${id}`);}catch{}
+  // remove from index
+  let idx = await loadMomentsIndex({force:true}) || [];
+  idx = idx.filter(x=>x.id!==id);
+  await writeIndex(IDX.moments, idx, 'remove moment from index');
+  sessionStorage.removeItem('mh:index:moments');
+  await loadFeed(); await loadVertical();
+  toast('Moment deleted');
+}
+
 async function renderFeedPage(reset=false){
   const host=byId('feed'); if(reset){ feedCursor=0; host.innerHTML=''; }
   const idx=await loadMomentsIndex({force:false}); const slice=idx.slice(feedCursor, feedCursor+PAGE_SIZE);
@@ -618,6 +944,11 @@ async function renderFeedPage(reset=false){
     const el=wrap.firstElementChild; host.appendChild(el);
     // counts
     refreshEngagementUI('moments', m.id, { likeCountEl: el.querySelector('.like-count'), commentCountEl: el.querySelector('.comment-count') });
+    // like dbl-click on media
+    el.querySelector('.mx-3, .rounded-xl');
+    el.addEventListener('dblclick', async ()=>{ await toggleLike('moments', m.id); refreshEngagementUI('moments', m.id, { likeCountEl: el.querySelector('.like-count'), commentCountEl: el.querySelector('.comment-count') }); });
+    // delete
+    const del=el.querySelector('[data-delete-moment]'); if(del){ del.onclick=()=> deleteMoment(m.id, m.author); }
   }
   feedCursor += slice.length;
   let moreBtn=document.getElementById('feed-more');
@@ -656,7 +987,7 @@ async function renderVerticalPage(reset=false){
 async function loadVertical(){ await renderVerticalPage(true); }
 (function(){ const host=byId('mom-vertical'); host.addEventListener('scroll', ()=>{ if(host.scrollTop + host.clientHeight >= host.scrollHeight - 200){ renderVerticalPage(false); } }); document.addEventListener('keydown',(e)=>{ if(byId('tab-moments').classList.contains('hidden')) return; if(e.key.toLowerCase()==='j') host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}); if(e.key.toLowerCase()==='k') host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}); }); })();
 
-// Feed actions
+// Feed actions (like/comment open)
 byId('feed').addEventListener('click', async (e)=>{
   const likeBtn=e.target.closest('[data-like-moment]'); if(likeBtn){ const id=likeBtn.getAttribute('data-like-moment'); await toggleLike('moments', id); await refreshEngagementUI('moments', id, { likeCountEl: likeBtn.querySelector('.like-count'), commentCountEl: likeBtn.parentElement.querySelector('.comment-count') }); return; }
   const viewBtn=e.target.closest('[data-view]'); if(viewBtn){ openMomentViewer(viewBtn.getAttribute('data-view')); }
@@ -673,10 +1004,9 @@ async function openMomentViewer(id){
   byId('moment-comment-send').onclick=async ()=>{ const i=byId('moment-comment-input'); const text=(i.value||'').trim(); if(!text) return; await addComment('moments', id, text); i.value=''; refreshEngagementUI('moments', id, { likeCountEl: byId('moment-like-count'), commentCountEl: byId('moment-comment-count'), commentsHost: byId('moment-comments') }); };
   show(momentModal);
 }
-</script>
-<script>
-// ===== App Accounts (multi-user like IG) =====
-const currentLogin = () => state.user?.login || null;
+
+// ---------- App Accounts (multi-user) ----------
+const currentLoginRef = () => state.user?.login || null; // kept for backward compat
 
 function appBoxRender(){
   const box=byId('appacct-box'); const outBtn=byId('signOutBtn');
@@ -686,7 +1016,6 @@ function appBoxRender(){
   } else {
     box.textContent='Not signed in to an app account.'; outBtn.classList.add('hidden');
   }
-  // bind profile editor to current app user
   byId('pf-name').value = state.user?.name || '';
   byId('pf-handle').value = state.user?.handle || '';
 }
@@ -696,10 +1025,8 @@ async function restoreAppUser(){
   if(saved){ try{ const p=await (await fetch(rawURL(`profiles/${saved}.json`),{cache:'no-store'})).json(); state.user=p; }catch{} }
   appBoxRender();
 }
-
 async function sha256Hex(s){
   if(window.crypto?.subtle){ const enc=new TextEncoder(); const buf=await crypto.subtle.digest('SHA-256', enc.encode(s)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
-  // fallback (weak)
   let h=0; for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return String(h);
 }
 
@@ -714,17 +1041,15 @@ byId('rg-go').onclick = async ()=>{
     if(!state.me) return alert('Connect to GitHub first');
     const login=byId('rg-login').value.trim(); const name=byId('rg-name').value.trim()||login; const handle=(byId('rg-handle').value.trim()||null); const pin=byId('rg-pin').value.trim();
     if(!login || !pin) return alert('Username & PIN required');
-    // ensure not exists
     let exists=true; try{ await (await fetch(rawURL(`profiles/${login}.json`),{cache:'no-store'})).json(); }catch{ exists=false; }
     if(exists) return alert('Username already exists');
     const pin_hash=await sha256Hex(pin);
     const prof={ login, name, handle, role:'user', status:'active', created_at:new Date().toISOString(), auth:{pin_hash} };
     await upsertText(`profiles/${login}.json`, JSON.stringify(prof,null,2), `register profile ${login}`);
     state.user=prof; sessionStorage.setItem('mh:appUser', login); appBoxRender(); hide(registerModal); toast('Account created & signed in');
-    await loadPeople(); // refresh DM list
+    await loadPeople();
   }catch(err){ alert(err.message); }
 };
-
 byId('si-go').onclick = async ()=>{
   try{
     if(!state.me) return alert('Connect to GitHub first');
@@ -736,8 +1061,6 @@ byId('si-go').onclick = async ()=>{
     await loadPeople();
   }catch(err){ alert(err.message); }
 };
-
-// Save profile edits for current app user
 byId('pf-save').onclick = async ()=>{
   try{
     if(!state.user) return alert('Sign in to an app account first');
@@ -751,28 +1074,45 @@ byId('pf-save').onclick = async ()=>{
   }catch(err){ alert(err.message); }
 };
 
-// ===== DMs (show all profiles, delete own messages) =====
+// ---------- DMS (WhatsApp-style: unread badges, ticks, delete) ----------
 let DM_OTHER=null;
 const pairKey=(a,b)=> [a,b].sort().join('__');
+const READS = { // store per-user last read timestamp in repo
+  path: (a,b,user)=> `dms_reads/${pairKey(a,b)}_${user}.json`,
+  async set(a,b,user,ts){ await upsertText(this.path(a,b,user), JSON.stringify({user, last_read_ts: ts}, null, 2), `dm read ${pairKey(a,b)} ${user}`); },
+  async get(a,b,user){ try{ return await (await fetch(rawURL(this.path(a,b,user)),{cache:'no-store'})).json(); }catch{ return {user, last_read_ts:0}; } }
+};
 
 async function loadPeople(){
   let list=[]; try{ const arr=await ghGet('profiles'); for(const it of arr){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const p=await (await fetch(it.download_url)).json(); list.push(p);}catch{} } } }catch{}
-  const q=(byId('dm-search').value||'').toLowerCase();
-  list=list.filter(p=> [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q));
+  const my=currentLogin(); const q=(byId('dm-search').value||'').toLowerCase();
+  list=list.filter(p=> [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q) && p.login!==my);
   const host=byId('dm-people'); host.innerHTML='';
-  list.forEach(u=>{
-    const row=document.createElement('button'); row.className='w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center gap-2';
-    row.innerHTML=`<div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
-      <div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
-      <div class="text-[11px] text-black/60">@${u.login}</div></div>`;
+  // compute unread per contact (from last_read marker vs messages)
+  for(const u of list){
+    const thread = await readThread(my,u.login);
+    const lastRead = (await READS.get(my, u.login, my)).last_read_ts || 0;
+    const unread = (thread.messages||[]).filter(m=> m.to===my && m.ts>lastRead).length;
+    const row=document.createElement('button'); row.className='w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center justify-between gap-2';
+    row.innerHTML=`<div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
+        <div><div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
+        <div class="text-[11px] text-black/60">@${u.login}</div></div></div>
+      ${unread? `<span class="ml-2 rounded-full bg-emerald-500 text-white text-[11px] px-2 py-0.5">${unread}</span>`:''}`;
     row.onclick=()=>{ DM_OTHER=u; renderDM(); };
     host.appendChild(row);
-  });
+  }
 }
 byId('dm-search').addEventListener('input', loadPeople);
 
 async function readThread(a,b){ const key=pairKey(a,b); const path=`dms/${key}.json`; try{ return await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ return {key, messages:[]}; } }
 async function writeThread(a,b,thread){ const key=pairKey(a,b); const path=`dms/${key}.json`; await upsertText(path, JSON.stringify(thread,null,2), `dm ${key}`); }
+
+function tickHTML(m, otherLastRead){
+  // ✓ = delivered (saved), ✓✓ = read (other has last_read_ts >= m.ts)
+  if(m.to===DM_OTHER?.login){ return `<span class="text-[11px] ${otherLastRead>=m.ts?'text-emerald-600':'text-black/40'}">${otherLastRead>=m.ts?'✓✓':'✓'}</span>`; }
+  return '';
+}
 
 async function renderDM(){
   const me = currentLogin(); const hdr=byId('dm-header'); const log=byId('dm-log'); const send=byId('dm-send');
@@ -780,21 +1120,30 @@ async function renderDM(){
   hdr.textContent=`Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle||DM_OTHER.login})`;
   send.disabled=false;
   const thread=await readThread(me, DM_OTHER.login);
+  // other user's last read
+  const otherRead = (await READS.get(me, DM_OTHER.login, DM_OTHER.login)).last_read_ts || 0;
   log.innerHTML = (thread.messages||[]).map(m=>{
     const mine = m.from===me;
-    const cls = mine? 'text-right':'';
+    const cls = mine? 'text-right':''; const bubble = mine?'bg-sky-100':'bg-white/70';
     return `<div class="mb-2 ${cls}">
-      <button class="inline-block rounded-xl px-3 py-2 text-sm ${mine?'bg-sky-100':'bg-white/70'}" data-delmsg="${m.id}">${m.text}</button>
+      <div class="inline-flex items-end gap-1">
+        <button class="inline-block rounded-xl px-3 py-2 text-sm ${bubble}" data-delmsg="${m.id}">${m.text}</button>
+        ${mine? tickHTML(m, otherRead):''}
+      </div>
       <div class="text-[10px] text-black/50">${new Date(m.ts).toLocaleString()} • ${m.from}</div>
     </div>`;
   }).join('');
   log.scrollTop=log.scrollHeight;
 
+  // mark as read for me (messages to me)
+  const newestToMe = [...(thread.messages||[])].reverse().find(m=> m.to===me);
+  if(newestToMe){ await READS.set(me, DM_OTHER.login, me, newestToMe.ts); }
+
   // delete on tap (own messages or admin)
   log.onclick = async (e)=>{
     const btn=e.target.closest('[data-delmsg]'); if(!btn) return;
     const id=btn.getAttribute('data-delmsg');
-    const mine = btn.parentElement.classList.contains('text-right');
+    const mine = btn.parentElement.parentElement.classList.contains('text-right');
     if(!mine && !state.isAdmin) return; // only own or admin
     const t=await readThread(me, DM_OTHER.login);
     t.messages=(t.messages||[]).filter(x=>x.id!==id);
@@ -807,11 +1156,13 @@ byId('dm-send').onclick = async ()=>{
   const me=currentLogin(); if(!me || !DM_OTHER) return alert('Sign into an app account and pick someone');
   const input=byId('dm-msg'); const text=(input.value||'').trim(); if(!text) return;
   const thread=await readThread(me, DM_OTHER.login); thread.messages=thread.messages||[];
-  thread.messages.push({ id:`${Date.now()}_${Math.random().toString(36).slice(2)}`, from: me, to: DM_OTHER.login, text, ts: Date.now() });
-  await writeThread(me, DM_OTHER.login, thread); input.value=''; await renderDM();
+  const msg = { id:`${Date.now()}_${Math.random().toString(36).slice(2)}`, from: me, to: DM_OTHER.login, text, ts: Date.now() };
+  thread.messages.push(msg);
+  await writeThread(me, DM_OTHER.login, thread); input.value='';
+  await renderDM();
 };
 
-// ===== Admin helpers (unchanged behavior) =====
+// ---------- Admin helpers ----------
 byId('adm-init').onclick = async ()=>{ if(!state.me) return alert('Connect first'); await ensureDirs(); toast('Initialized folders'); };
 byId('adm-addme').onclick = async ()=>{ if(!state.me) return alert('Connect first'); let arr=[]; try{ arr=await (await fetch(rawURL('admins.json'))).json(); }catch{} if(!Array.isArray(arr)) arr=[]; if(!arr.includes(state.me.login)) arr.push(state.me.login); await upsertText('admins.json', JSON.stringify(arr,null,2), 'update admins'); await loadAdminStatus(); toast('You are admin now'); };
 
@@ -838,20 +1189,1431 @@ byId('btn-rebuild-indexes').onclick = async ()=>{ if(!state.isAdmin) return aler
   let idx=[]; try{ const arr=await ghGet('moments'); for(const it of (arr||[])){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const j=await (await fetch(it.download_url)).json(); idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at}); }catch{} } } }catch{}
   idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); await upsertText(IDX.moments, JSON.stringify(idx,null,2), 'rebuild moments index'); sessionStorage.removeItem('mh:index:moments'); toast('Indexes rebuilt'); };
 
-// ===== Studio Pro (batch posting with per-line captions) =====
-byId('studio-run').onclick = async ()=>{
-  try{
-    if(!currentLogin()) return alert('Sign in to an app account first');
-    const files=byId('studio-files').files; if(!files?.length) return alert('Select files');
-    const caps=(byId('studio-captions').value||'').split('\n'); const tags=parseTags(byId('studio-tags').value);
-    const total=files.length; let done=0; const st=byId('studio-status'); st.textContent=`Posting 0/${total}…`;
-    await limitConcurrency(Array.from(files),3, async (f,idx)=>{ const caption=caps[idx]?.trim()||''; const m=await postOneMomentFromFile(f,{caption,tags,link:null}); await prependToIndex(m); done++; st.textContent=`Posted ${done}/${total}`; });
-    st.textContent='Batch complete ✓'; await loadFeed(); await loadVertical(); toast('Studio batch posted');
-  }catch(err){ alert(err.message); }
-};
-
-// ===== Boot =====
-(async ()=>{ /* ready */ })();
+// ---------- Boot ----------
+(async ()=>{
+  // Connect defaults are applied when opening the modal (Part 2), but we can prefill quietly too:
+  try{ presetRepoDefaults?.(); }catch{}
+  // Initial UI
+  await loadStories().catch(()=>{});
+  await loadFeed().catch(()=>{});
+  await loadVertical().catch(()=>{});
+  await restoreAppUser().catch(()=>{});
+})();
 </script>
+<script>
+/* ===== Moments Hub — last-minute repair patch =====
+   Drop this right before </body>. It:
+   1) Defines chip(), timeAgo(), cardHTML() if they were broken.
+   2) Rebinds main buttons & tabs if handlers weren’t attached.
+   3) Boots feed/stories/vertical with safe fallbacks so UI works.
+*/
+
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const has = (fn)=> typeof window[fn] === 'function';
+  const show = (el)=> el && el.classList.remove('hidden');
+  const hide = (el)=> el && el.classList.add('hidden');
+
+  // ------- Recreate helpers if missing -------
+  if(!has('chip')){
+    window.chip = (t)=>`<span class="inline-flex items-center rounded-full bg-black/5 px-2 py-0.5 text-[11px]">${t}</span>`;
+  }
+  if(!has('timeAgo')){
+    window.timeAgo = function(ts){
+      const d = new Date(ts||Date.now());
+      const s = Math.floor((Date.now()-d.getTime())/1000);
+      if(s<60) return `${s}s`;
+      const m=Math.floor(s/60); if(m<60) return `${m}m`;
+      const h=Math.floor(m/60); if(h<24) return `${h}h`;
+      const dd=Math.floor(h/24); if(dd<7) return `${dd}d`;
+      return d.toLocaleDateString();
+    };
+  }
+  if(!has('currentLogin')){
+    window.currentLogin = ()=> (window.state && window.state.user && window.state.user.login) || null;
+  }
+  if(!has('cardHTML')){
+    window.cardHTML = function(m, author, counts){
+      counts = counts || {likes:0, comments:0};
+      const mine = currentLogin() && currentLogin()===m.author;
+      const media = m.kind==='video'
+        ? `<video class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" muted playsinline loop></video>`
+        : `<img class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" alt="">`;
+      return `
+        <article class="rounded-2xl border bg-white shadow p-0 overflow-hidden group" data-moment="${m.id}">
+          <header class="flex items-center justify-between px-3 pt-3">
+            <div class="flex items-center gap-2">
+              <div class="h-9 w-9 rounded-full bg-gradient-to-br from-sky-200 to-fuchsia-200 grid place-items-center text-xs border border-black/10">${(author?.name||m.author||'—').slice(0,1)}</div>
+              <div>
+                <div class="text-sm font-semibold">${author?.name||m.author}</div>
+                <div class="text-[11px] text-black/50">@${m.author} • ${timeAgo(m.created_at)}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              ${m.link ? `<a href="${m.link}" target="_blank" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🔗</a>` : ``}
+              ${mine ? `<button class="rounded-full border border-red-200 bg-white/80 px-3 py-1 text-xs font-semibold text-red-600 shadow-sm" data-delete-moment="${m.id}">Delete</button>`:''}
+            </div>
+          </header>
+          <div class="mt-3 mx-3 rounded-xl overflow-hidden ring-1 ring-black/5">${media}</div>
+          <div class="px-3 py-2 flex items-center gap-2 text-sm">
+            <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-like-moment="${m.id}">❤️ <span class="like-count">${counts.likes||0}</span></button>
+            <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1" data-view="${m.id}">💬 <span class="comment-count">${counts.comments||0}</span></button>
+            <span class="ml-auto text-[11px] text-black/50">${(m.tags||[]).slice(0,3).map(t=>`#${t}`).join(' ')}</span>
+          </div>
+          <div class="px-3 pb-3 text-sm"><span class="font-semibold">${author?.name||m.author}</span> ${m.caption||''}</div>
+        </article>`;
+    };
+  }
+
+  // ------- Safe no-ops to prevent crashes if earlier code failed -------
+  const noop = async ()=>{};
+  window.stopStoryTimer   = window.stopStoryTimer   || function(){};
+  window.resetStoriesDrag = window.resetStoriesDrag || function(){};
+  window.openStudio       = window.openStudio       || function(){ show($('studio-modal')); };
+  window.triggerStoryPicker = window.triggerStoryPicker || function(){ $('studio-files')?.click?.(); };
+  window.loadFeed    = window.loadFeed    || noop;
+  window.loadStories = window.loadStories || noop;
+  window.loadVertical= window.loadVertical|| noop;
+
+  // ------- Re-bind tabs if they didn't bind -------
+  (function bindTabs(){
+    const tabs = document.querySelectorAll('.tab-btn');
+    if(!tabs.length) return;
+    // if a previous handler exists, this won’t hurt
+    tabs.forEach(btn=>{
+      btn.onclick = ()=> {
+        const t = btn.dataset.tab;
+        ['feed','moments','dms','account','admin'].forEach(k=>{
+          const sec = $('tab-'+k);
+          if(sec) sec.classList.toggle('hidden', k!==t);
+        });
+        document.querySelectorAll('.tab-btn').forEach(b=>{
+          const on = b.dataset.tab===t;
+          b.classList.toggle('bg-white', on);
+          b.classList.toggle('shadow', on);
+          b.classList.toggle('text-black/70', !on);
+        });
+      };
+    });
+    // ensure something is visible
+    if($('tab-feed') && $('tab-feed').classList.contains('hidden')){
+      document.querySelector('[data-tab="feed"]')?.click();
+    }
+  })();
+
+  // ------- Re-bind key buttons so UI opens/closes -------
+  const bind = (id, fn)=>{ const el=$(id); if(el) el.onclick = fn; };
+
+  bind('openLoginBtn', ()=>{ try{ window.presetRepoDefaults?.(); }catch{} show($('modal')); });
+  bind('closeLoginBtn', ()=> hide($('modal')));
+
+  bind('openComposeBtn', ()=> window.openStudio('moment'));
+  bind('fabCompose',     ()=> window.openStudio('moment'));
+  bind('fabStudio',      ()=> window.openStudio('moment'));
+
+  bind('openStoryComposeBtn', ()=> window.openStudio('story'));
+  bind('fabStory',            ()=> window.triggerStoryPicker());
+
+  bind('closeStudioBtn',  ()=> hide($('studio-modal')));
+  bind('closeComposeBtn', ()=> hide($('compose-modal')));
+  bind('closeMomentBtn',  ()=> hide($('moment-modal')));
+
+  // Stories viewer close taps
+  (function(){
+    const sv = $('stories-viewer');
+    if(!sv) return;
+    const closeAll = ()=>{ try{ window.stopStoryTimer(); }catch{} hide(sv); try{ window.resetStoriesDrag(); }catch{} };
+    bind('sv-close', closeAll);
+    sv.addEventListener('click', (e)=>{ if(e.target===sv) closeAll(); });
+  })();
+
+  // ------- Boot some UI so the page isn’t blank -------
+  (async function boot(){
+    try{ await window.loadStories(); }catch{}
+    try{ await window.loadFeed(); }catch{}
+    try{ await window.loadVertical(); }catch{}
+  })();
+})();
+</script>
+<script>
+/* ========= Moments Hub — GitHub Connect Fix (Drop-in) =========
+   What it does:
+   - Forces owner= hunter9201, repo= momentshub-data, branch= main
+   - Accepts PAT and verifies: token -> repo -> write permission
+   - Falls back to READ-ONLY (no PAT) so UI can load public data
+   - Shows friendly error messages when something’s off
+   - Re-binds your "Connect" modal button automatically
+   Insert this right before </body>.
+*/
+(function(){
+  const GH_API = 'https://api.github.com';
+  const DEFAULT_OWNER  = 'hunter9201';
+  const DEFAULT_REPO   = 'momentshub-data';
+  const DEFAULT_BRANCH = 'main';
+
+  const $ = id => document.getElementById(id);
+  const show = el => el && el.classList.remove('hidden');
+  const hide = el => el && el.classList.add('hidden');
+  const safeState = ()=> (window.state = window.state || {});
+
+  function setStatus(msg, ok=false){
+    const el = $('conn-status');
+    if(!el) return;
+    el.innerHTML = ok ? `<span class="text-green-700">${msg}</span>` : msg;
+  }
+  function toast(msg){
+    const t=document.createElement('div');
+    t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg';
+    t.textContent=msg;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),2200);
+  }
+
+  // Force defaults in the modal inputs (owner/repo locked)
+  function presetRepoDefaults(){
+    const o=$('gh-owner'), r=$('gh-repo'), b=$('gh-branch');
+    if(o){ o.value=DEFAULT_OWNER;  o.disabled=true;  o.classList.add('bg-black/5'); }
+    if(r){ r.value=DEFAULT_REPO;   r.disabled=true;  r.classList.add('bg-black/5'); }
+    if(b){ b.value=DEFAULT_BRANCH; b.placeholder='main'; if(!b.value) b.value=DEFAULT_BRANCH; }
+    // “Change” buttons (if present) will toggle disabled state
+    ['gh-adv1','gh-adv2'].forEach(id=>{
+      const btn=$(id);
+      if(btn){
+        btn.onclick=()=>{
+          const inp = id==='gh-adv1'? $('gh-owner') : $('gh-repo');
+          inp.disabled = !inp.disabled;
+          inp.classList.toggle('bg-black/5', inp.disabled);
+          btn.textContent = inp.disabled ? 'Change' : 'Lock';
+          if(inp.disabled){ inp.value = id==='gh-adv1'? DEFAULT_OWNER : DEFAULT_REPO; }
+        };
+      }
+    });
+  }
+
+  // Minimal GitHub helpers that don’t rely on earlier code
+  function ghHeaders(token){
+    const h = { 'Accept':'application/vnd.github+json' };
+    if(token) h['Authorization'] = 'Bearer ' + token; // fine-grained tokens prefer Bearer
+    return h;
+  }
+
+  async function ghGet(url, token){
+    const res = await fetch(url, { headers: ghHeaders(token) });
+    if(!res.ok){
+      // propagate useful text for better errors
+      let body = '';
+      try{ body = await res.text(); }catch{}
+      const e = new Error(`GET ${url} -> ${res.status}`);
+      e.status = res.status; e.body = body;
+      throw e;
+    }
+    return res.json();
+  }
+
+  // Quick write test: try to upsert indexes/health.json with a timestamp
+  async function testWrite(owner, repo, branch, token){
+    const path = 'indexes/health.json';
+    // First: get the file sha if exists
+    let sha = null;
+    try{
+      const rf = await ghGet(`${GH_API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`, token);
+      sha = rf && rf.sha || null;
+    }catch(e){ /* 404 is fine — means file doesn't exist yet */ }
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify({ ts: Date.now() }, null, 2))));
+    const res = await fetch(`${GH_API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, {
+      method: 'PUT',
+      headers: {
+        ...ghHeaders(token),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'healthcheck: write test',
+        content,
+        branch,
+        ...(sha? { sha } : {})
+      })
+    });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> '');
+      const err = new Error('WRITE_FAIL');
+      err.status = res.status; err.body = txt;
+      throw err;
+    }
+    return true;
+  }
+
+  async function quickConnect(){
+    // Ensure modal inputs exist
+    presetRepoDefaults();
+
+    const owner  = DEFAULT_OWNER;
+    const repo   = DEFAULT_REPO;
+    const branch = ($('gh-branch')?.value.trim() || DEFAULT_BRANCH);
+    const token  = ($('gh-token')?.value.trim() || '');
+
+    const msg = $('gh-msg');
+    const st  = safeState();
+
+    // set state defaults early (helps other code)
+    st.owner  = owner;
+    st.repo   = repo;
+    st.branch = branch;
+    st.token  = token;
+
+    try{
+      // 1) If token provided, validate it
+      let me = null;
+      if(token){
+        const ures = await ghGet(`${GH_API}/user`, token);
+        me = ures;
+      }
+
+      // 2) Ensure repo exists & is reachable
+      await ghGet(`${GH_API}/repos/${owner}/${repo}`, token || undefined);
+
+      // 3) If token given, verify write permission by writing a tiny health file
+      if(token){
+        try{
+          await testWrite(owner, repo, branch, token);
+        }catch(werr){
+          // Good hint messages based on status/body
+          let hint = 'Make sure your PAT is a Fine-grained token with Repository access to this repo and "Contents: Read and Write".';
+          if(werr.status===404) hint = 'Repo/branch not found or PAT lacks access. Confirm the branch is "main" and the token can access this repository.';
+          if(werr.status===401) hint = 'Unauthorized. Double-check the PAT and that it hasn’t expired.';
+          if(werr.status===403) hint = 'Forbidden. Your PAT does not have "contents:write" privileges for this repo.';
+          msg.textContent = `Connected (read) but cannot write: ${hint}`;
+          setStatus(`Connected read-only to <code>${owner}/${repo}@${branch}</code> (no write permission)`, false);
+          // continue in read-only mode
+          st.me = me || { login: 'anonymous' };
+          hide($('modal'));
+          await afterConnectBoot(true);
+          toast('Connected (read-only)');
+          return;
+        }
+      }
+
+      // 4) Success — full read/write or read-only fallback without token
+      st.me = token ? me : { login: 'guest' };
+      setStatus(`Connected${token?' as <strong>@'+(me?.login||'you')+'</strong>':''}. Repo: <code>${owner}/${repo}@${branch}</code>`, true);
+      msg.textContent='Connected ✓';
+      hide($('modal'));
+      await afterConnectBoot(false);
+      toast('Connected to GitHub');
+
+    }catch(err){
+      // Diagnose common mistakes cleanly
+      let nice = 'Could not connect. ';
+      if(err.status===401) nice += 'Invalid/expired PAT.';
+      else if(err.status===404) nice += 'Repo not found. It must be public or your PAT must have access.';
+      else if(err.status===403) nice += 'Access forbidden. Check token scopes/permissions.';
+      else nice += 'Network or GitHub error.';
+      const body = (err && err.body) ? ` Details: ${err.body.slice(0,240)}` : '';
+      $('gh-msg').textContent = nice + body;
+      setStatus('Not connected. Check your token/repo.');
+    }
+  }
+
+  // After connect: ensure dirs, profile, load UI (works even if original functions missing)
+  async function afterConnectBoot(readOnly){
+    const st = safeState();
+
+    // Fall back helpers if the page’s originals aren’t loaded yet
+    const ghHeadersLocal = ghHeaders(st.token);
+    const rawURL = (p)=> `https://raw.githubusercontent.com/${st.owner}/${st.repo}/${st.branch}/${p}`;
+
+    async function upsert(path, text){
+      if(readOnly) return; // skip writes in read-only
+      const res = await fetch(`${GH_API}/repos/${st.owner}/${st.repo}/contents/${encodeURIComponent(path)}`, {
+        method: 'PUT',
+        headers: { ...ghHeadersLocal, 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          message: `init ${path}`,
+          content: btoa(unescape(encodeURIComponent(text))),
+          branch: st.branch
+        })
+      });
+      if(!res.ok) throw new Error('init fail '+path);
+    }
+
+    // ensure dirs (no-op if read-only)
+    async function ensureDirs(){
+      if(readOnly) return;
+      const mk=async p=>{ try{ await upsert(`${p}/.gitkeep`, ''); }catch{} };
+      await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media');
+      await mk('dms'); await mk('indexes'); await mk('engagement/moments'); await mk('engagement/stories');
+    }
+    async function ensureProfile(login){
+      if(readOnly) return;
+      try{
+        const res = await fetch(rawURL(`profiles/${login}.json`), {cache:'no-store'});
+        if(res.ok) return;
+      }catch{}
+      const data={ login, name: login, handle:null, role:'user', status:'active', created_at:new Date().toISOString() };
+      await upsert(`profiles/${login}.json`, JSON.stringify(data, null, 2));
+    }
+
+    try{ await ensureDirs(); }catch{}
+    try{ if(st.me?.login) await ensureProfile(st.me.login); }catch{}
+
+    // Call the page’s loaders if they exist; otherwise, do soft fetch to warm UI
+    const tryCall = async (fn)=>{ try{ return await (typeof window[fn]==='function'? window[fn](): null); }catch{} };
+    await Promise.all([
+      tryCall('loadFeed'),
+      tryCall('loadStories'),
+      tryCall('loadVertical'),
+      tryCall('renderProfileBox'),
+      tryCall('renderAdmin'),
+      tryCall('restoreAppUser')
+    ]);
+  }
+
+  // Rebind the Connect button & modal open to enforce defaults
+  function bindConnect(){
+    const openBtn = $('openLoginBtn');
+    if(openBtn){
+      openBtn.onclick = ()=>{ presetRepoDefaults(); show($('modal')); };
+    }
+    const connectBtn = $('gh-connect');
+    if(connectBtn){
+      connectBtn.onclick = quickConnect;
+    }
+  }
+
+  // Initialize immediately
+  presetRepoDefaults();
+  bindConnect();
+
+  // Optional: allow Enter key on PAT field to connect
+  const pat = $('gh-token');
+  if(pat){
+    pat.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); quickConnect(); }});
+  }
+})();
+</script>
+<script>
+/* ========= GitHub Write-Required Connect (Drop-in) =========
+   - Forces connect to succeed only if PAT truly has write permission.
+   - Shows a guided checklist + raw API error details if write fails.
+   - Keeps your existing code intact; only overrides the connect button.
+   - Defaults to hunter9201/momentshub-data@main.
+*/
+(function(){
+  const GH_API = 'https://api.github.com';
+  const OWNER  = 'hunter9201';
+  const REPO   = 'momentshub-data';
+  const BRANCH = 'main';
+
+  const $ = id => document.getElementById(id);
+  function setStatus(msg, ok=false){
+    const el = $('conn-status');
+    if(el) el.innerHTML = ok ? `<span class="text-green-700">${msg}</span>` : msg;
+  }
+  function toast(msg){
+    const t=document.createElement('div');
+    t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg';
+    t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200);
+  }
+  function ghHeaders(token){ const h={'Accept':'application/vnd.github+json'}; if(token) h.Authorization='Bearer '+token; return h; }
+  async function jfetch(url, opts){
+    const res = await fetch(url, opts);
+    if(!res.ok){
+      const body = await res.text().catch(()=> '');
+      const err = new Error(`HTTP ${res.status}`);
+      err.status = res.status; err.body = body;
+      throw err;
+    }
+    return res.json();
+  }
+
+  // Visible helper: shows a modal with detailed steps to fix write access.
+  function ensureFixModal(){
+    if($('gh-write-help')) return;
+    const m = document.createElement('div');
+    m.id='gh-write-help';
+    m.className='hidden fixed inset-0 z-[9998] grid place-items-center bg-black/60 p-4';
+    m.innerHTML = `
+      <div class="w-full max-w-xl rounded-2xl border border-black/10 bg-white p-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold">Fix write access</h3>
+          <button id="gh-help-close" class="text-black/60">✕</button>
+        </div>
+        <div class="mt-2 text-sm leading-relaxed space-y-2">
+          <div id="gh-help-error" class="text-[12px] text-red-600 break-words"></div>
+          <ol class="list-decimal pl-5 space-y-1 text-[13px]">
+            <li>Create a <strong>Fine-grained Personal Access Token</strong>.</li>
+            <li>Grant it access to <code>${OWNER}/${REPO}</code> (Selected repositories).</li>
+            <li>Permissions: <strong>Repository contents → Read and Write</strong>.</li>
+            <li>Ensure the repo has a <code>${BRANCH}</code> branch and isn’t restricted.</li>
+            <li>If repo is private, you must be a collaborator or have org access.</li>
+          </ol>
+          <div class="mt-2 grid gap-2">
+            <button id="gh-retest" class="rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold">Retest write permission</button>
+          </div>
+          <div class="text-[11px] text-black/60 mt-2">Tip: If you switched tokens, paste the new PAT and hit Retest.</div>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    $('gh-help-close').onclick = ()=> m.classList.add('hidden');
+  }
+  function showWriteHelp(errText){
+    ensureFixModal();
+    $('gh-help-error').textContent = errText || '';
+    $('gh-write-help').classList.remove('hidden');
+  }
+
+  async function testWrite(owner, repo, branch, token){
+    // find sha (if any)
+    let sha=null, urlGet=`${GH_API}/repos/${owner}/${repo}/contents/${encodeURIComponent('indexes/health.json')}?ref=${branch}`;
+    try{
+      const rf = await jfetch(urlGet, {headers: ghHeaders(token)});
+      sha = rf?.sha || null;
+    }catch(e){ if(e.status!==404) throw e; } // 404 = ok, will create
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify({ ts: Date.now() }, null, 2))));
+    const urlPut = `${GH_API}/repos/${owner}/${repo}/contents/${encodeURIComponent('indexes/health.json')}`;
+    const res = await fetch(urlPut, {
+      method:'PUT',
+      headers: { ...ghHeaders(token), 'Content-Type':'application/json' },
+      body: JSON.stringify({ message:'healthcheck: write test', content, branch, ...(sha?{sha}:{}) })
+    });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> '');
+      const err = new Error('WRITE_FAIL');
+      err.status = res.status; err.body = txt;
+      throw err;
+    }
+    return true;
+  }
+
+  async function connectWithWriteRequired(){
+    const owner  = OWNER;
+    const repo   = REPO;
+    const branch = ($('gh-branch')?.value.trim() || BRANCH);
+    const token  = ($('gh-token')?.value.trim() || '');
+
+    // preset inputs for clarity
+    if($('gh-owner')){ $('gh-owner').value = owner; $('gh-owner').disabled = true; }
+    if($('gh-repo')){  $('gh-repo').value  = repo;  $('gh-repo').disabled  = true; }
+
+    if(!token){
+      showWriteHelp('No PAT provided. A token with Contents: Read & Write is required.');
+      return;
+    }
+
+    try{
+      // 1) identify user (for friendly status)
+      const me = await jfetch(`${GH_API}/user`, { headers: ghHeaders(token) });
+
+      // 2) verify repo exists
+      await jfetch(`${GH_API}/repos/${owner}/${repo}`, { headers: ghHeaders(token) });
+
+      // 3) must pass write test
+      await testWrite(owner, repo, branch, token);
+
+      // 4) success — set global state (keeps rest of app logic the same)
+      window.state = window.state || {};
+      state.owner = owner; state.repo = repo; state.branch = branch; state.token = token; state.me = me;
+
+      setStatus(`Connected as <strong>@${me.login}</strong>. Repo: <code>${owner}/${repo}@${branch}</code>`, true);
+      const msg = $('gh-msg'); if(msg) msg.textContent = 'Connected ✓ (write verified)';
+      const m = $('modal'); if(m) m.classList.add('hidden');
+      toast('Connected with write permission');
+
+      // kick existing boot loaders if they exist
+      const tryCall = async fn => { try{ if(typeof window[fn]==='function') return await window[fn](); }catch{} };
+      await Promise.all([tryCall('ensureDirs'), tryCall('ensureProfile'), tryCall('loadAdminStatus'),
+                         tryCall('loadFeed'), tryCall('loadStories'), tryCall('loadVertical'),
+                         tryCall('renderProfileBox'), tryCall('renderAdmin'), tryCall('restoreAppUser')]);
+    }catch(e){
+      // Friendly explanation
+      let hint = `Write test failed. The PAT must allow “Repository contents: Read and Write” on ${owner}/${repo}.`;
+      if(e.status===401) hint = 'Unauthorized (401). The PAT is invalid or expired.';
+      if(e.status===403) hint = 'Forbidden (403). The PAT lacks write permission for this repository.';
+      if(e.status===404) hint = 'Not found (404). Repo or branch is missing, or the PAT cannot access this repo.';
+      const details = (e.body || '').slice(0, 400);
+      setStatus('Not connected. Write required.');
+      showWriteHelp(`${hint}\n\nDetails: ${details}`);
+    }
+  }
+
+  // Wire up modal open & Connect button
+  function bind(){
+    const openBtn = $('openLoginBtn');
+    if(openBtn){
+      openBtn.onclick = ()=> {
+        // preset and show the modal
+        if($('gh-owner')){ $('gh-owner').value = OWNER; $('gh-owner').disabled = true; }
+        if($('gh-repo')){  $('gh-repo').value  = REPO;  $('gh-repo').disabled  = true; }
+        const modal = $('modal'); if(modal) modal.classList.remove('hidden');
+      };
+    }
+    const connectBtn = $('gh-connect');
+    if(connectBtn){
+      connectBtn.onclick = (e)=>{ e.preventDefault(); connectWithWriteRequired(); };
+    }
+    // Retest button in the help modal
+    document.addEventListener('click', (e)=>{
+      const b = e.target.closest('#gh-retest');
+      if(b){ e.preventDefault(); connectWithWriteRequired(); }
+    });
+  }
+
+  bind();
+
+  // Optional: allow Enter on PAT field to connect
+  const pat = $('gh-token');
+  if(pat){ pat.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); connectWithWriteRequired(); }}); }
+})();
+</script>
+<script>
+/* ===== App Account Fix Pack: Sign in / Register =====
+   Paste just before </body>. Safe to include alongside existing code.
+*/
+(function(){
+  // ---------- Small Helpers ----------
+  const $ = (id)=> document.getElementById(id);
+  const show = (el)=>{ if(el) el.classList.remove('hidden'); };
+  const hide = (el)=>{ if(el) el.classList.add('hidden'); };
+  const toast = (msg)=>{ const t=document.createElement('div'); t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2000); };
+
+  // Ensure global state exists
+  window.state = window.state || { owner:'hunter9201', repo:'momentshub-data', branch:'main', token:'', me:null, user:null };
+
+  // Provide GH utilities if missing
+  const GH_API='https://api.github.com';
+  if(typeof window.rawURL!=='function'){
+    window.rawURL = (p)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+  }
+  if(typeof window.gh!=='function'){
+    window.gh = async (method, url, body)=>{
+      const res = await fetch(url, { method, headers:{
+        'Accept':'application/vnd.github+json',
+        ...(state.token? {Authorization:'Bearer '+state.token}:{})
+      }, body: body? JSON.stringify(body): undefined });
+      if(!res.ok){ throw new Error(`${res.status}: ${await res.text()}`); }
+      return res.json();
+    };
+  }
+  if(typeof window.ghGetSha!=='function'){
+    window.ghGetSha = async (path)=> {
+      try{
+        const j = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`);
+        return j.sha || null;
+      }catch(e){ return null; }
+    };
+  }
+  if(typeof window.upsertText!=='function'){
+    window.upsertText = async (path, text, message)=>{
+      const sha = await ghGetSha(path);
+      return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
+        message: message || `update ${path}`,
+        content: btoa(unescape(encodeURIComponent(text))),
+        branch: state.branch,
+        ...(sha? {sha}:{})
+      });
+    };
+  }
+
+  async function sha256Hex(s){
+    if(window.crypto?.subtle){
+      const enc=new TextEncoder();
+      const buf=await crypto.subtle.digest('SHA-256', enc.encode(s));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    // fallback (not cryptographically strict, but avoids hard fail)
+    let h=0; for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return String(h);
+  }
+
+  // ---------- UI helpers ----------
+  function renderAppBox(){
+    const box = $('appacct-box');
+    const outBtn = $('signOutBtn');
+    if(!box) return;
+    if(state.user){
+      box.innerHTML = `Signed in as <strong>@${state.user.login}</strong> (<span class="text-black/70">${state.user.name||state.user.login}</span>)`;
+      if(outBtn) outBtn.classList.remove('hidden');
+    }else{
+      box.textContent = 'Not signed in to an app account.';
+      if(outBtn) outBtn.classList.add('hidden');
+    }
+    if($('pf-name'))   $('pf-name').value   = state.user?.name   || '';
+    if($('pf-handle')) $('pf-handle').value = state.user?.handle || '';
+  }
+
+  async function restoreAppUser(){
+    const saved = sessionStorage.getItem('mh:appUser');
+    if(saved){
+      try{
+        const res = await fetch(rawURL(`profiles/${saved}.json`), {cache:'no-store'});
+        if(res.ok){ state.user = await res.json(); }
+      }catch{}
+    }
+    renderAppBox();
+  }
+
+  // ---------- Actions ----------
+  async function doRegister(){
+    if(!state.token){ alert('Connect to GitHub first (PAT required).'); return; }
+    const login  = ($('rg-login')?.value||'').trim();
+    const name   = ($('rg-name')?.value||'').trim() || login;
+    const handle = ($('rg-handle')?.value||'').trim() || null;
+    const pin    = ($('rg-pin')?.value||'').trim();
+    if(!login || !pin){ alert('Username & PIN are required.'); return; }
+
+    // Check existence
+    try{
+      const res = await fetch(rawURL(`profiles/${login}.json`), {cache:'no-store'});
+      if(res.ok) { alert('Username already exists. Choose another.'); return; }
+    }catch{}
+
+    const pin_hash = await sha256Hex(pin);
+    const prof = { login, name, handle, role:'user', status:'active',
+                   created_at:new Date().toISOString(), auth:{ pin_hash } };
+    try{
+      await upsertText(`profiles/${login}.json`, JSON.stringify(prof, null, 2), `register profile ${login}`);
+      state.user = prof;
+      sessionStorage.setItem('mh:appUser', login);
+      renderAppBox();
+      hide($('register-modal'));
+      toast('Account created & signed in');
+      // Optional: refresh people list if your app defines loadPeople()
+      if(typeof window.loadPeople==='function'){ await window.loadPeople(); }
+    }catch(e){
+      alert('Failed to save profile. Make sure your PAT has "Contents: Read and Write".\n\n'+e.message);
+    }
+  }
+
+  async function doSignIn(){
+    if(!state.token){ alert('Connect to GitHub first (PAT required).'); return; }
+    const login = ($('si-login')?.value||'').trim();
+    const pin   = ($('si-pin')?.value||'').trim();
+    if(!login || !pin){ alert('Enter username and PIN.'); return; }
+    try{
+      const res = await fetch(rawURL(`profiles/${login}.json`), {cache:'no-store'});
+      if(!res.ok){ alert('Account not found.'); return; }
+      const prof = await res.json();
+      if(!prof?.auth?.pin_hash){ alert('This account has no PIN set. Use Register instead.'); return; }
+      const pin_hash = await sha256Hex(pin);
+      if(pin_hash !== prof.auth.pin_hash){ alert('Invalid PIN.'); return; }
+      state.user = prof;
+      sessionStorage.setItem('mh:appUser', login);
+      renderAppBox();
+      hide($('signin-modal'));
+      toast('Signed in');
+      if(typeof window.loadPeople==='function'){ await window.loadPeople(); }
+    }catch(e){
+      alert('Sign in failed.\n\n'+(e?.message||e));
+    }
+  }
+
+  function doSignOut(){
+    state.user = null;
+    sessionStorage.removeItem('mh:appUser');
+    renderAppBox();
+    toast('Signed out');
+  }
+
+  // ---------- Bind UI (idempotent) ----------
+  function bind(){
+    const btnOpenIn  = $('openSignInBtn');
+    const btnOpenReg = $('openRegisterBtn');
+    const btnCloseIn = $('closeSigninBtn');
+    const btnCloseRg = $('closeRegisterBtn');
+    const btnGoIn    = $('si-go');
+    const btnGoReg   = $('rg-go');
+    const btnOut     = $('signOutBtn');
+
+    if(btnOpenIn)  btnOpenIn.onclick  = ()=> show($('signin-modal'));
+    if(btnOpenReg) btnOpenReg.onclick = ()=> show($('register-modal'));
+    if(btnCloseIn) btnCloseIn.onclick = ()=> hide($('signin-modal'));
+    if(btnCloseRg) btnCloseRg.onclick = ()=> hide($('register-modal'));
+    if(btnGoIn)    btnGoIn.onclick    = doSignIn;
+    if(btnGoReg)   btnGoReg.onclick   = doRegister;
+    if(btnOut)     btnOut.onclick     = doSignOut;
+
+    // Enter-to-submit for convenience
+    if($('si-pin')) $('si-pin').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doSignIn(); }});
+    if($('rg-pin')) $('rg-pin').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doRegister(); }});
+  }
+
+  // ---------- Boot ----------
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    try{ bind(); await restoreAppUser(); }catch{}
+  });
+})();
+</script>
+<script>
+/* ===== Moments/Stories Uploader (plug-and-play) =====
+   Works with IDs:
+   - Moment buttons:  #openComposeBtn, #fabCompose
+   - Story  buttons:  #openStoryComposeBtn, #fabStory
+   Requirements:
+   - state.token must be a PAT with "Contents: Read and Write"
+   - state.owner='hunter9201', state.repo='momentshub-data', state.branch='main'
+*/
+(function(){
+  // --------------- Small helpers ---------------
+  const $ = (id)=> document.getElementById(id);
+  const toast = (msg)=>{ const t=document.createElement('div'); t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2200); };
+
+  // Ensure global state
+  window.state = window.state || {};
+  state.owner  = state.owner  || 'hunter9201';
+  state.repo   = state.repo   || 'momentshub-data';
+  state.branch = state.branch || 'main';
+  state.token  = state.token  || '';
+
+  const GH_API='https://api.github.com';
+  const rawURL = (p)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+
+  async function gh(method, url, body){
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Accept':'application/vnd.github+json',
+        ...(state.token? {Authorization:'Bearer '+state.token}:{}),
+        'Content-Type': 'application/json'
+      },
+      body: body? JSON.stringify(body): undefined
+    });
+    if(!res.ok){ throw new Error(`${res.status}: ${await res.text()}`); }
+    return res.json();
+  }
+  async function ghGetSha(path){
+    try{
+      const j = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`);
+      return j.sha || null;
+    }catch{ return null; }
+  }
+  function bufToBase64(buf){
+    let binary=''; const bytes=new Uint8Array(buf), chunk=0x8000;
+    for(let i=0;i<bytes.length;i+=chunk){ binary+=String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); }
+    return btoa(binary);
+  }
+  async function upsertText(path, text, message){
+    const sha = await ghGetSha(path);
+    return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
+      message: message || `update ${path}`,
+      content: btoa(unescape(encodeURIComponent(text))),
+      branch: state.branch,
+      ...(sha? {sha}:{})
+    });
+  }
+  async function upsertBinary(path, file, message){
+    const buf = await file.arrayBuffer();
+    const sha = await ghGetSha(path);
+    return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
+      message: message || `upload ${path}`,
+      content: bufToBase64(buf),
+      branch: state.branch,
+      ...(sha? {sha}:{})
+    });
+  }
+  async function ensureDirs(){
+    const mk = async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`); }catch{} };
+    await mk('profiles'); await mk('moments'); await mk('stories');
+    await mk('media'); await mk('dms'); await mk('indexes');
+    await mk('engagement/moments'); await mk('engagement/stories');
+  }
+
+  // Who is posting? Prefer app user (state.user.login), fallback to connected GitHub user (state.me.login)
+  function currentAuthor(){
+    return (state.user && state.user.login) || (state.me && state.me.login) || null;
+  }
+
+  // --------------- Core upload/post ---------------
+  async function uploadMedia(file){
+    const author = currentAuthor();
+    if(!author) throw new Error('Sign in (App Account) or connect with GitHub first');
+    const ext = (file.name.split('.').pop()||'bin').toLowerCase();
+    const id  = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const d   = new Date(); const year=d.getUTCFullYear(); const month=String(d.getUTCMonth()+1).padStart(2,'0');
+    const path= `media/${year}/${month}/${author}_${id}.${ext}`;
+    await upsertBinary(path, file, `upload media ${id}`);
+    return rawURL(path);
+  }
+
+  async function postMoment(file, {caption='', tags=[], link=null}={}){
+    const author = currentAuthor();
+    if(!author) throw new Error('Sign in (App Account) or connect with GitHub first');
+    const kind = (file.type||'').startsWith('video')?'video':'image';
+    const media_url = await uploadMedia(file);
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const meta = { id, author, kind, caption, tags, link, media_url, created_at: new Date().toISOString() };
+    await upsertText(`moments/${id}.json`, JSON.stringify(meta, null, 2), `post moment ${id}`);
+    // init engagement
+    try{ await upsertText(`engagement/moments/${id}.json`, JSON.stringify({likes:[],comments:[]},null,2), `init engagement moments ${id}`);}catch{}
+    // update index (preprend)
+    try{
+      let idx = []; 
+      try{ idx = await (await fetch(rawURL('indexes/moments.json'), {cache:'no-store'})).json(); }catch{}
+      idx = Array.isArray(idx)? idx: [];
+      idx.unshift({ id, author, kind, caption, tags, link, media_url, created_at: meta.created_at });
+      await upsertText('indexes/moments.json', JSON.stringify(idx, null, 2), 'append moments index');
+    }catch{}
+    return meta;
+  }
+
+  async function postStory(file){
+    const author = currentAuthor();
+    if(!author) throw new Error('Sign in (App Account) or connect with GitHub first');
+    const kind = (file.type||'').startsWith('video')?'video':'image';
+    const media_url = await uploadMedia(file);
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const created_at = new Date().toISOString();
+    const expires_at = new Date(Date.now()+48*3600*1000).toISOString();
+    const s = { id, author, kind, caption:'', media_url, created_at, expires_at };
+    await upsertText(`stories/${id}.json`, JSON.stringify(s, null, 2), `add story ${id}`);
+    try{ await upsertText(`engagement/stories/${id}.json`, JSON.stringify({likes:[],comments:[]},null,2), `init engagement stories ${id}`);}catch{}
+    return s;
+  }
+
+  function parseTags(v){ return (v||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean); }
+
+  // --------------- Button wiring ---------------
+  function pickFiles(accept, multiple=true){
+    return new Promise(resolve=>{
+      const input = document.createElement('input');
+      input.type='file'; input.accept = accept; input.multiple = multiple;
+      input.onchange = ()=> resolve(Array.from(input.files||[]));
+      input.click();
+    });
+  }
+
+  async function handleMomentClick(){
+    try{
+      if(!state.token){ alert('Connect to GitHub first and enter a PAT with write permissions.'); return; }
+      await ensureDirs();
+      const files = await pickFiles('image/*,video/*', true);
+      if(!files.length) return;
+      toast(`Posting ${files.length} moment${files.length>1?'s':''}…`);
+      let done=0;
+      for(const f of files){
+        await postMoment(f, { caption:'', tags:[], link:null });
+        done++; 
+        toast(`Posted ${done}/${files.length}`);
+      }
+      // refresh UI if host app exposes these hooks
+      try{ if(typeof window.loadFeed==='function') await window.loadFeed(); }catch{}
+      try{ if(typeof window.loadVertical==='function') await window.loadVertical(); }catch{}
+      toast('Moments posted ✓');
+    }catch(e){
+      alert('Failed to post moments.\n\n'+(e?.message||e));
+    }
+  }
+
+  async function handleStoryClick(){
+    try{
+      if(!state.token){ alert('Connect to GitHub first and enter a PAT with write permissions.'); return; }
+      await ensureDirs();
+      const files = await pickFiles('image/*,video/*', true);
+      if(!files.length) return;
+      toast(`Posting ${files.length} stor${files.length>1?'ies':'y'}…`);
+      let done=0;
+      for(const f of files){
+        await postStory(f);
+        done++; 
+        toast(`Posted ${done}/${files.length}`);
+      }
+      try{ if(typeof window.loadStories==='function') await window.loadStories(); }catch{}
+      toast('Stories posted ✓');
+    }catch(e){
+      alert('Failed to post stories.\n\n'+(e?.message||e));
+    }
+  }
+
+  function bindIfPresent(id, fn){
+    const el = $(id);
+    if(el){ el.onclick = fn; }
+  }
+
+  // Bind both desktop and mobile entry points
+  bindIfPresent('openComposeBtn', handleMomentClick);
+  bindIfPresent('fabCompose',     handleMomentClick);
+  bindIfPresent('openStoryComposeBtn', handleStoryClick);
+  bindIfPresent('fabStory',           handleStoryClick);
+
+  // Optional: try to capture GitHub user so "author" fallback works
+  (async ()=>{
+    try{
+      if(state.token){
+        const ures = await fetch(`${GH_API}/user`, { headers: { Authorization:'Bearer '+state.token } });
+        if(ures.ok){ state.me = await ures.json(); }
+      }
+    }catch{}
+  })();
+
+})();
+</script>
+<script>
+/* ===== Connect & Load-Everything Bootstrap (plug-and-play) ===== */
+(function(){
+  // --- tiny DOM helpers ---
+  const $ = (id)=> document.getElementById(id);
+  const setStatus = (t, ok=false)=>{ const el=$('conn-status'); if(!el) return; el.innerHTML = ok? `<span class="text-green-700">${t}</span>`:t; };
+  const safe = (fn)=> typeof fn==='function';
+
+  // --- global state defaults (use existing if present) ---
+  window.state = window.state || {};
+  state.owner  = state.owner  || 'hunter9201';
+  state.repo   = state.repo   || 'momentshub-data';
+  state.branch = state.branch || 'main';
+  state.token  = state.token  || '';
+
+  // Prefill Connect modal inputs if present
+  if ($('gh-owner')) $('gh-owner').value = 'hunter9201';
+  if ($('gh-repo'))  $('gh-repo').value  = 'momentshub-data';
+  if ($('gh-branch'))$('gh-branch').value= 'main';
+
+  const GH_API = 'https://api.github.com';
+  const rawURL = (p)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+
+  async function gh(method, url, body){
+    const res = await fetch(url, {
+      method,
+      headers:{
+        'Accept':'application/vnd.github+json',
+        ...(state.token? {Authorization:'Bearer '+state.token}:{})
+      },
+      ...(body? {body: JSON.stringify(body)}:{})
+    });
+    if(!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+  async function listDir(path){
+    try{
+      const arr = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`);
+      return Array.isArray(arr)? arr: [];
+    }catch{ return []; }
+  }
+  async function readJSONPath(path){
+    try{ const res = await fetch(rawURL(path), {cache:'no-store'}); if(!res.ok) return null; return await res.json(); }catch{ return null; }
+  }
+
+  // ---------- FALLBACK LOADERS (used only if your app doesn't define its own) ----------
+  async function loadStoriesFallback(){
+    const host = $('stories-row'); if(!host) return;
+    host.innerHTML = 'Loading stories…';
+    const all = await listDir('stories');
+    const now = Date.now();
+    const live = [];
+    for (const it of all){
+      if(it.type==='file' && it.name.endsWith('.json')){
+        try{
+          const j = await (await fetch(it.download_url, {cache:'no-store'})).json();
+          if(new Date(j.expires_at).getTime() > now) live.push(j);
+        }catch{}
+      }
+    }
+    if(!live.length){ host.innerHTML = `<div class="text-sm text-black/60">No active stories.</div>`; return; }
+    // group by author; render chips
+    const byAuthor = new Map();
+    live.sort((a,b)=> new Date(a.created_at)-new Date(b.created_at));
+    for(const s of live){ if(!byAuthor.has(s.author)) byAuthor.set(s.author, []); byAuthor.get(s.author).push(s); }
+    const chips = [];
+    for (const [author, arr] of byAuthor.entries()){
+      let prof=null; try{ prof = await readJSONPath(`profiles/${author}.json`);}catch{}
+      const name = prof?.name || author;
+      const first = arr[arr.length-1];
+      const media = first.kind==='image'
+        ? `<img src="${first.media_url}" class="h-full w-full object-cover">`
+        : `<video src="${first.media_url}" class="h-full w-full object-cover" muted></video>`;
+      chips.push(`<button class="flex flex-col items-center gap-1">
+        <span class="block h-16 w-16 rounded-full story-ring overflow-hidden">${media}</span>
+        <span class="text-[11px] max-w-24 truncate">${name}</span>
+      </button>`);
+    }
+    host.innerHTML = chips.join('');
+  }
+
+  function timeAgo(ts){ const d=new Date(ts||Date.now()); const s=Math.floor((Date.now()-d)/1000);
+    if(s<60) return `${s}s`; const m=Math.floor(s/60); if(m<60) return `${m}m`;
+    const h=Math.floor(m/60); if(h<24) return `${h}h`; const dd=Math.floor(h/24); if(dd<7) return `${dd}d`; return d.toLocaleDateString(); }
+
+  async function loadFeedFallback(){
+    const host = $('feed'); if(!host) return;
+    host.innerHTML = '';
+    let idx = await readJSONPath('indexes/moments.json');
+    if(!Array.isArray(idx) || !idx.length){
+      // build on the fly
+      idx = [];
+      const files = await listDir('moments');
+      for (const it of files){
+        if(it.type==='file' && it.name.endsWith('.json')){
+          try{ const j = await (await fetch(it.download_url, {cache:'no-store'})).json();
+            idx.push({ id:j.id, author:j.author, created_at:j.created_at, caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, kind:j.kind||'image' });
+          }catch{}
+        }
+      }
+      idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
+    }
+    if(!idx.length){ host.innerHTML = `<div class="text-sm text-black/60">No posts yet.</div>`; return; }
+    // paint cards
+    for (const m of idx.slice(0, 18)){ // initial page
+      let prof=null; try{ prof = await readJSONPath(`profiles/${m.author}.json`);}catch{}
+      const name = prof?.name || m.author;
+      const media = m.kind==='video'
+        ? `<video class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" muted playsinline loop></video>`
+        : `<img class="w-full aspect-[4/5] object-cover rounded-xl" src="${m.media_url}" />`;
+      const tags = (m.tags||[]).slice(0,3).map(t=>`#${t}`).join(' ');
+      const card = document.createElement('article');
+      card.className = 'rounded-2xl border bg-white shadow p-0 overflow-hidden';
+      card.innerHTML = `
+        <header class="flex items-center justify-between px-3 pt-3">
+          <div class="flex items-center gap-2">
+            <div class="h-9 w-9 rounded-full bg-gradient-to-br from-sky-200 to-fuchsia-200 grid place-items-center text-xs border border-black/10">${(name||'—').slice(0,1)}</div>
+            <div>
+              <div class="text-sm font-semibold">${name}</div>
+              <div class="text-[11px] text-black/50">@${m.author} • ${timeAgo(m.created_at)}</div>
+            </div>
+          </div>
+          ${m.link? `<a href="${m.link}" target="_blank" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🔗</a>`:''}
+        </header>
+        <div class="mt-3 mx-3 rounded-xl overflow-hidden ring-1 ring-black/5">${media}</div>
+        <div class="px-3 py-2 text-[11px] text-black/50">${tags}</div>
+        <div class="px-3 pb-3 text-sm"><span class="font-semibold">${name}</span> ${m.caption||''}</div>`;
+      host.appendChild(card);
+    }
+  }
+
+  async function loadVerticalFallback(){
+    const host=$('mom-vertical'); if(!host) return;
+    // Just mirror first few from feed for a quick fill
+    let idx = await readJSONPath('indexes/moments.json'); idx = Array.isArray(idx)? idx: [];
+    for (const m of idx.slice(0,8)){
+      const media = m.kind==='video'
+        ? `<video class="absolute inset-0 h-full w-full object-cover" src="${m.media_url}" muted playsinline loop></video>`
+        : `<img class="absolute inset-0 h-full w-full object-cover" src="${m.media_url}">`;
+      host.insertAdjacentHTML('beforeend', `
+        <div class="rounded-2xl overflow-hidden border border-black/10 bg-black/90 text-white relative" style="scroll-snap-align:center">
+          <div class="aspect-[9/16] w-full relative">${media}
+            <div class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0">
+              <div class="text-sm font-semibold truncate">@${m.author}</div>
+              <div class="text-sm opacity-90 truncate">${m.caption||''}</div>
+            </div>
+          </div>
+        </div>`);
+    }
+  }
+
+  async function loadPeopleFallback(){
+    const host = $('dm-people'); if(!host) return;
+    host.innerHTML = '';
+    const arr = await listDir('profiles');
+    for (const it of arr){
+      if(it.type==='file' && it.name.endsWith('.json')){
+        try{
+          const p = await (await fetch(it.download_url, {cache:'no-store'})).json();
+          const row=document.createElement('div');
+          row.className='w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center gap-2';
+          row.innerHTML=`<div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(p.name||p.login).slice(0,1)}</div>
+          <div><div class="font-semibold">${p.name||'—'} ${p.handle? '• @'+p.handle:''}</div>
+          <div class="text-[11px] text-black/60">@${p.login}</div></div>`;
+          host.appendChild(row);
+        }catch{}
+      }
+    }
+  }
+
+  async function renderProfileBoxFallback(){
+    const box = $('profile-box'); if(!box) return;
+    if(!state.me){ box.innerHTML=`<div class="text-black/60">Not connected.</div>`; return; }
+    let prof=null; try{ prof = await readJSONPath(`profiles/${state.me.login}.json`);}catch{}
+    box.innerHTML = `<div class="flex items-center gap-3">
+      <div class="h-12 w-12 rounded-full border border-black/10 bg-white/70 grid place-items-center text-xs">${(prof?.name||state.me.login).slice(0,1)}</div>
+      <div><div class="font-semibold">${prof?.name||state.me.login} <span class="chip">${prof?.role||'user'}</span></div>
+      <div class="text-xs text-black/60">@${state.me.login} ${prof?.handle? '• @'+prof.handle:''}</div></div></div>`;
+  }
+
+  async function renderAdminFallback(){
+    const met = $('adm-metrics'); if(!met) return;
+    let users=0, moments=0, storiesLive=0, now=Date.now();
+    try{
+      const ps = await listDir('profiles'); users = ps.filter(f=>f.type==='file' && f.name.endsWith('.json')).length;
+      const ms = await listDir('moments');  moments = ms.filter(f=>f.type==='file' && f.name.endsWith('.json')).length;
+      const ss = await listDir('stories');
+      for(const it of ss){ if(it.type==='file' && it.name.endsWith('.json')){ try{ const s=await (await fetch(it.download_url)).json(); if(new Date(s.expires_at).getTime()>now) storiesLive++; }catch{} } }
+    }catch{}
+    met.innerHTML = `<div>Total users: ${users}</div><div>Moments: ${moments}</div><div>Stories (active): ${storiesLive}</div>`;
+  }
+
+  // ---------- MAIN CONNECT HANDLER ----------
+  async function connectAndLoad(){
+    try{
+      // read inputs if present; otherwise keep defaults
+      state.owner  = ($('gh-owner')?.value || 'hunter9201').trim();
+      state.repo   = ($('gh-repo')?.value  || 'momentshub-data').trim();
+      state.branch = ($('gh-branch')?.value|| 'main').trim();
+      state.token  = ($('gh-token')?.value || state.token || '').trim();
+
+      // 1) validate PAT by hitting /user
+      const ures = await fetch(`${GH_API}/user`, { headers: state.token? {Authorization:'Bearer '+state.token}:{}} );
+      if(!ures.ok) throw new Error('Invalid PAT or network issue');
+      state.me = await ures.json();
+
+      // 2) check repo exists / readable
+      await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}`);
+      setStatus(`Connected as <strong>@${state.me.login}</strong>. Repo: <code>${state.owner}/${state.repo}@${state.branch}</code>`, true);
+
+      // close modal if exists
+      if ($('gh-msg')) $('gh-msg').textContent = 'Connected ✓';
+      if (typeof hide==='function' && $('modal')) hide($('modal'));
+
+      // 3) Load EVERYTHING — prefer app’s own loaders, else fallbacks
+      if (safe(window.loadStories)) { await window.loadStories(); } else { await loadStoriesFallback(); }
+      if (safe(window.loadFeed))    { await window.loadFeed();    } else { await loadFeedFallback(); }
+      if (safe(window.loadVertical)){ await window.loadVertical(); } else { await loadVerticalFallback(); }
+      if (safe(window.loadPeople))  { await window.loadPeople();  } else { await loadPeopleFallback(); }
+      if (safe(window.renderProfileBox)){ await window.renderProfileBox(); } else { await renderProfileBoxFallback(); }
+      if (safe(window.loadAdminStatus))  { await window.loadAdminStatus(); }
+      if (safe(window.renderAdmin))      { await window.renderAdmin(); } else { await renderAdminFallback(); }
+
+    }catch(err){
+      setStatus(`Not connected. ${err.message||err}`, false);
+      if ($('gh-msg')) $('gh-msg').textContent = (err.message||'Failed to connect');
+    }
+  }
+
+  // Bind connect button (id: gh-connect)
+  if ($('gh-connect')) $('gh-connect').onclick = connectAndLoad;
+
+  // Also allow pressing Enter in PAT field to connect immediately
+  if ($('gh-token')) $('gh-token').addEventListener('keydown', (e)=>{ if(e.key==='Enter') connectAndLoad(); });
+
+  // Optional: auto-load read-only data on first paint (without PAT) — comment out if undesired
+  (async ()=>{
+    try{
+      // Try to load public data even before auth (read-only)
+      await loadStoriesFallback();
+      await loadFeedFallback();
+      await loadVerticalFallback();
+      await loadPeopleFallback();
+      await renderAdminFallback();
+    }catch{}
+  })();
+
+})();
+</script>
+<script>
+/* ========= FEED STORIES + MOMENTS/STORIES BUTTONS (max 4 upload) ========= */
+(function(){
+  // --- DOM helpers ---
+  const $ = (id)=> document.getElementById(id);
+  const show = el => el && el.classList.remove('hidden');
+  const hide = el => el && el.classList.add('hidden');
+  const toast = (msg)=>{ const t=document.createElement('div'); t.className='fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] rounded-full bg-black text-white text-xs px-3 py-2 shadow-lg'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); };
+
+  // --- state defaults (use your existing `state` if defined) ---
+  window.state = window.state || {};
+  state.owner  = state.owner  || 'hunter9201';
+  state.repo   = state.repo   || 'momentshub-data';
+  state.branch = state.branch || 'main';
+  state.token  = state.token  || '';
+
+  // --- GitHub helpers (reuse if already present) ---
+  const GH_API='https://api.github.com';
+  const rawURL=(p)=>`https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+  async function gh(method, url, body){
+    const res = await fetch(url, { method, headers: {
+      'Accept':'application/vnd.github+json',
+      ...(state.token? {Authorization:'Bearer '+state.token}:{})
+    }, ...(body? {body: JSON.stringify(body)}:{}) });
+    if(!res.ok){ throw new Error(`${res.status}: ${await res.text()}`); }
+    return res.json();
+  }
+  async function ghGet(path){ return gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`); }
+  async function ghGetSha(path){ try{ const j=await ghGet(path); return j.sha; }catch{return null;} }
+  function bufToBase64(buf){ let binary=''; const bytes=new Uint8Array(buf), chunk=0x8000; for(let i=0;i<bytes.length;i+=chunk){ binary+=String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); } return btoa(binary); }
+  async function upsertText(path, text, message){ const sha=await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {message:message||`update ${path}`, content:btoa(unescape(encodeURIComponent(text))), branch:state.branch, ...(sha?{sha}:{})}); }
+  async function upsertBinary(path,file,message){ const buf=await file.arrayBuffer(); const content=bufToBase64(buf); const sha=await ghGetSha(path); return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {message:message||`upload ${path}`, content, branch:state.branch, ...(sha?{sha}:{})}); }
+  async function ensureDirs(){ const mk=async p=>{ try{ await upsertText(`${p}/.gitkeep`, '', `init ${p}`);}catch{} }; await mk('profiles'); await mk('moments'); await mk('stories'); await mk('media'); await mk('dms'); await mk('indexes'); await mk('engagement/moments'); await mk('engagement/stories'); }
+
+  // --- App account current login (re-use if present) ---
+  const currentLogin = (window.currentLogin?.bind(window)) || (()=> (state.user?.login || null));
+
+  // --- Engagement (likes/comments) fallbacks (used only for viewer counts) ---
+  const ENG = { moments: id=>`engagement/moments/${id}.json`, stories: id=>`engagement/stories/${id}.json` };
+  async function ensureEngagement(kind,id){ const path=ENG[kind](id); try{ await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ await upsertText(path, JSON.stringify({likes:[],comments:[]},null,2), `init engagement ${kind}/${id}`); } }
+  async function readEngagement(kind,id){ const path=ENG[kind](id); try{ return await (await fetch(rawURL(path),{cache:'no-store'})).json(); }catch{ return {likes:[],comments:[]}; } }
+  async function toggleLike(kind,id){ if(!currentLogin()) return alert('Sign in to an app account first'); await ensureEngagement(kind,id); const data=await readEngagement(kind,id); const who=currentLogin(); data.likes=data.likes||[]; const i=data.likes.indexOf(who); if(i>=0) data.likes.splice(i,1); else data.likes.push(who); await upsertText(ENG[kind](id), JSON.stringify(data,null,2), `engage ${kind}/${id}`); return data; }
+  async function addComment(kind,id,text){ if(!currentLogin()) return alert('Sign in to an app account first'); await ensureEngagement(kind,id); const data=await readEngagement(kind,id); data.comments=data.comments||[]; data.comments.push({id:`${Date.now()}_${Math.random().toString(36).slice(2)}`,from:currentLogin(),text,ts:Date.now()}); await upsertText(ENG[kind](id), JSON.stringify(data,null,2), `engage ${kind}/${id}`); }
+
+  // --- Upload & post helpers ---
+  function parseTags(v){ return (v||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean); }
+  async function uploadMedia(file){
+    if(!state.me) throw new Error('Connect to GitHub first');
+    const ext=(file.name.split('.').pop()||'bin').toLowerCase();
+    const id=`${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const d=new Date(); const year=d.getUTCFullYear(); const month=String(d.getUTCMonth()+1).padStart(2,'0');
+    const path=`media/${year}/${month}/${currentLogin()||state.me.login}_${id}.${ext}`;
+    await upsertBinary(path,file,`upload media ${id}`); return rawURL(path);
+  }
+  async function postOneMomentFromFile(file, {caption,tags,link}){
+    if(!currentLogin()) throw new Error('Sign in to an app account first');
+    const kind=(file.type||'').startsWith('video')?'video':'image';
+    const media_url=await uploadMedia(file);
+    const id=`${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const meta={ id, author: currentLogin(), kind, caption: caption||'', tags: tags||[], link: link||null, media_url, created_at:new Date().toISOString() };
+    await upsertText(`moments/${id}.json`, JSON.stringify(meta,null,2), `post moment ${id}`);
+    // index prepend (best effort)
+    try{
+      let idx = null; try{ idx = await (await fetch(rawURL('indexes/moments.json'),{cache:'no-store'})).json(); }catch{}
+      idx = Array.isArray(idx)? idx: [];
+      idx.unshift({ id:meta.id, author:meta.author, kind:meta.kind, caption:meta.caption, tags:meta.tags, link:meta.link, media_url:meta.media_url, created_at:meta.created_at});
+      await upsertText('indexes/moments.json', JSON.stringify(idx,null,2), 'append moments index');
+    }catch{}
+    await ensureEngagement('moments', id);
+    return meta;
+  }
+  async function postOneStoryFromFile(file){
+    if(!currentLogin()) throw new Error('Sign in to an app account first');
+    const kind=(file.type||'').startsWith('video')?'video':'image';
+    const media_url=await uploadMedia(file);
+    const id=`${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const created_at=new Date().toISOString(); const expires_at=new Date(Date.now()+48*3600*1000).toISOString();
+    const s={ id, author: currentLogin(), kind, caption:'', media_url, created_at, expires_at };
+    await upsertText(`stories/${id}.json`, JSON.stringify(s,null,2), `add story ${id}`);
+    await ensureEngagement('stories',id);
+    return s;
+  }
+
+  // --- Stories (feed row + viewer with swipe down & delete) ---
+  async function listJsonIn(path){
+    let items=[]; try{ const arr=await ghGet(path); items=Array.isArray(arr)? arr.filter(x=>x.type==='file' && x.name.endsWith('.json')):[]; }catch{}
+    const out=[]; for(const it of items){ try{ const j=await (await fetch(it.download_url,{cache:'no-store'})).json(); out.push(j);}catch{} } return out;
+  }
+  let STORY_GROUPS=[]; let svGroup=0, svIdx=0, svTimer=null, svVideo=null;
+  const IMG_DURATION=6000;
+  function stopStoryTimer(){ if(svTimer){ clearTimeout(svTimer); svTimer=null; } if(svVideo){ try{svVideo.pause();}catch{} svVideo=null; } }
+  function startStoryTimer(ms){ stopStoryTimer(); svTimer=setTimeout(()=> nextStory(), ms); animateProgress(ms); }
+  function animateProgress(ms){ const segs=$('sv-progress')?.querySelectorAll('.progress-seg>span')||[]; const cur=segs[svIdx]; if(cur){ cur.style.transition=`width ${ms}ms linear`; requestAnimationFrame(()=> cur.style.width='100%'); } }
+  function resetStoriesDrag(){ const card = $('sv-card'); if(card){ card.style.transform=''; card.style.opacity=''; } dragging=false; dragMax=0; dragStartY=null; }
+  async function deleteStory(id){
+    if(!currentLogin()) return alert('Sign in first');
+    const sha=await ghGetSha(`stories/${id}.json`); if(!sha) return; 
+    await gh('DELETE', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(`stories/${id}.json`)}`, {message:`delete story ${id}`, sha, branch:state.branch});
+    try{ const ssha=await ghGetSha(`engagement/stories/${id}.json`); if(ssha){ await gh('DELETE', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(`engagement/stories/${id}.json`)}`, {message:`delete story engagement ${id}`, sha:ssha, branch:state.branch}); } }catch{}
+    hide($('stories-viewer')); stopStoryTimer(); resetStoriesDrag();
+    await loadStoriesEnhanced();
+    toast('Story deleted');
+  }
+  function storyChipHTML(user,firstStory,name){
+    const media = firstStory.kind==='image'
+      ? `<img src="${firstStory.media_url}" class="h-full w-full object-cover">`
+      : `<video src="${firstStory.media_url}" class="h-full w-full object-cover" muted></video>`;
+    return `<button class="flex flex-col items-center gap-1" data-story-author="${user}">
+      <span class="block h-16 w-16 rounded-full story-ring overflow-hidden">${media}</span>
+      <span class="text-[11px] max-w-24 truncate">${name||user}</span>
+    </button>`;
+  }
+  async function loadStoriesEnhanced(){
+    const row=$('stories-row'); if(!row) return;
+    row.innerHTML='';
+    const stories=await listJsonIn('stories'); const now=Date.now();
+    const live=stories.filter(s=> new Date(s.expires_at).getTime() > now).sort((a,b)=> new Date(a.created_at)-new Date(b.created_at));
+    const byAuthor=new Map();
+    for(const s of live){ if(!byAuthor.has(s.author)) byAuthor.set(s.author,[]); byAuthor.get(s.author).push(s); }
+    STORY_GROUPS=[]; 
+    for(const [author,arr] of byAuthor.entries()){ let prof=null; try{ prof=await (await fetch(rawURL(`profiles/${author}.json`))).json(); }catch{} STORY_GROUPS.push({author, name:prof?.name||author, stories:arr}); }
+    if(!STORY_GROUPS.length){ row.innerHTML=`<div class="text-sm text-black/60">No active stories.</div>`; return; }
+    row.innerHTML = STORY_GROUPS.map(g=> storyChipHTML(g.author, g.stories[g.stories.length-1], g.name)).join('');
+  }
+  function renderStory(){
+    const g=STORY_GROUPS[svGroup]; if(!g) return hide($('stories-viewer'));
+    const s=g.stories[svIdx]; if(!s) return hide($('stories-viewer'));
+    const mine = currentLogin()===g.author;
+    $('sv-header').innerHTML=`<div class="h-8 w-8 rounded-full bg-white/20 grid place-items-center text-xs">${(g.name||g.author).slice(0,1)}</div><div>${g.name} <span class="text-white/60 text-xs">@${g.author}</span></div>${mine? `<button id="sv-del" class="ml-2 rounded-full px-2 py-1 text-xs bg-white/10 hover:bg-white/20">Delete</button>`:''}`;
+    $('sv-progress').innerHTML = g.stories.map((_,i)=>`<div class="progress-seg"><span style="width:${i<svIdx?'100%':'0'}"></span></div>`).join('');
+    const mediaHost=$('sv-media'); mediaHost.innerHTML=''; const isVid=s.kind==='video';
+    if(isVid){ const v=document.createElement('video'); v.src=s.media_url; v.playsInline=true; v.muted=true; v.autoplay=true; v.className='max-h-full max-w-full'; mediaHost.appendChild(v); svVideo=v; v.onloadedmetadata=()=>{ startStoryTimer(v.duration? v.duration*1000: IMG_DURATION); v.play().catch(()=>{}); }; v.onended=()=> nextStory(); }
+    else { const img=document.createElement('img'); img.src=s.media_url; img.className='max-h-full max-w-full object-contain'; mediaHost.appendChild(img); startStoryTimer(IMG_DURATION); }
+    $('sv-caption').textContent=s.caption||'';
+    // wire delete
+    const del=$('sv-del'); if(del) del.onclick=()=> deleteStory(s.id);
+  }
+  function nextStory(){ const g=STORY_GROUPS[svGroup]; if(svIdx<g.stories.length-1){ svIdx++; renderStory(); } else if(svGroup<STORY_GROUPS.length-1){ svGroup++; svIdx=0; renderStory(); } else { hide($('stories-viewer')); stopStoryTimer(); resetStoriesDrag(); } }
+  function prevStory(){ if(svIdx>0){ svIdx--; renderStory(); } else if(svGroup>0){ svGroup--; svIdx=STORY_GROUPS[svGroup].stories.length-1; renderStory(); } }
+
+  // open viewer from row
+  const storiesRow = $('stories-row');
+  if (storiesRow){
+    storiesRow.addEventListener('click', (e)=>{ const btn=e.target.closest('[data-story-author]'); if(!btn) return; const author=btn.getAttribute('data-story-author'); svGroup=STORY_GROUPS.findIndex(g=>g.author===author); svIdx=0; show($('stories-viewer')); renderStory(); });
+  }
+  if ($('sv-next')) $('sv-next').onclick=nextStory;
+  if ($('sv-prev')) $('sv-prev').onclick=prevStory;
+  if ($('sv-close')) $('sv-close').onclick=()=>{ stopStoryTimer(); hide($('stories-viewer')); resetStoriesDrag(); };
+
+  // swipe-down to close
+  let dragStartY=null, dragging=false, dragMax=0;
+  const viewer = $('stories-viewer'); const card = $('sv-card');
+  if (viewer && card){
+    card.addEventListener('pointerdown', (e)=>{ dragStartY=e.clientY; dragging=true; dragMax=0; card.setPointerCapture(e.pointerId); });
+    card.addEventListener('pointermove', (e)=>{ if(!dragging) return; const dy = Math.max(0, e.clientY - dragStartY); dragMax = Math.max(dragMax, dy); card.style.transform=`translateY(${dy}px)`; card.style.opacity=String(Math.max(0.3, 1 - dy/400)); });
+    card.addEventListener('pointerup', (e)=>{ if(!dragging) return; dragging=false; card.releasePointerCapture(e.pointerId); if(dragMax>120){ stopStoryTimer(); hide(viewer); resetStoriesDrag(); } else { card.style.transition='transform .2s, opacity .2s'; card.style.transform=''; card.style.opacity=''; setTimeout(()=>{ card.style.transition=''; }, 250); }});
+  }
+
+  // --- Buttons: pick up to 4 files and post ---
+  function pickFiles({accept, onFiles}){
+    const input=document.createElement('input');
+    input.type='file'; input.accept=accept; input.multiple=true;
+    input.onchange = ()=>{ const files=Array.from(input.files||[]).slice(0,4); if(files.length>4) toast('Limited to 4 files'); onFiles(files); };
+    input.click();
+  }
+
+  async function postMoments(files){
+    await ensureDirs();
+    const cap = prompt('Caption for all selected files (optional):','') || '';
+    const tags = parseTags(prompt('Tags (comma separated or #tag, optional):','')||'');
+    let posted=0;
+    for (const f of files){
+      await postOneMomentFromFile(f, {caption:cap, tags, link:null});
+      posted++;
+      $('conn-status') && ( $('conn-status').innerHTML = `<span class="text-green-700">Posting Moments… ${posted}/${files.length}</span>` );
+    }
+    toast('Moments posted');
+    // refresh UI using your loaders if present
+    if (typeof loadFeed==='function') await loadFeed(); 
+    if (typeof loadVertical==='function') await loadVertical();
+  }
+
+  async function postStories(files){
+    await ensureDirs();
+    let posted=0;
+    for (const f of files){
+      await postOneStoryFromFile(f);
+      posted++;
+      $('conn-status') && ( $('conn-status').innerHTML = `<span class="text-green-700">Posting Stories… ${posted}/${files.length}</span>` );
+    }
+    toast('Stories posted');
+    await loadStoriesEnhanced();
+  }
+
+  function wireButtons(){
+    const momentBtns = ['openComposeBtn','fabCompose'];
+    const storyBtns  = ['openStoryComposeBtn','fabStory'];
+    momentBtns.forEach(id=>{ const btn=$(id); if(!btn) return; btn.onclick=()=> pickFiles({accept:'video/*,image/*', onFiles: postMoments}); });
+    storyBtns.forEach(id=>{ const btn=$(id); if(!btn) return; btn.onclick=()=> pickFiles({accept:'video/*,image/*', onFiles: postStories}); });
+  }
+
+  // --- Public API: load/refresh stories row with enhancements ---
+  window.loadStoriesEnhanced = loadStoriesEnhanced;
+
+  // --- Initial bind/paint (only when the page has connected) ---
+  wireButtons();
+  // If already connected (state.me exists), paint now; else you can call loadStoriesEnhanced after Connect.
+  if (state.me) loadStoriesEnhanced();
+
+  // Also expose a convenience refresher after connect (call this from your connect flow if you like)
+  window.__afterConnectRefresh = async function(){
+    try{
+      await loadStoriesEnhanced();
+      if (typeof loadFeed==='function') await loadFeed();
+      if (typeof loadVertical==='function') await loadVertical();
+    }catch{}
+  };
+})();
+</script>
+
 </body>
 </html>
