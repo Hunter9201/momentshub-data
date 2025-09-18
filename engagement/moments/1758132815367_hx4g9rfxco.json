@@ -2,5 +2,12 @@
   "likes": [
     "Wazz"
   ],
-  "comments": []
+  "comments": [
+    {
+      "id": "1758182390697_r8cahwxrre",
+      "from": "Wazz",
+      "text": "Wow",
+      "ts": 1758182390697
+    }
+  ]
 }
