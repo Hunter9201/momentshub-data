@@ -1,4 +1,11 @@
 {
   "likes": [],
-  "comments": []
+  "comments": [
+    {
+      "id": "1758233814439_ebt522h2mwc",
+      "from": "Wazz",
+      "text": "Nice man",
+      "ts": 1758233814439
+    }
+  ]
 }
