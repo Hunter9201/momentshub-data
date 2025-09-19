@@ -2374,5 +2374,563 @@ It will:
 
 })();
 </script>
+<script>
+/* ===== Moments Hub — Perf + Video Audio Autoplay (Drop-in) =====
+   Paste just before </body>. It:
+   • Lazily loads images, sanitizes video attributes, and preconnects critical hosts
+   • Pauses offscreen videos, plays visible ones
+   • Tries autoplay WITH SOUND; if blocked, autounlocks on first user gesture (sitewide)
+   • Uses passive listeners, rAF/idle to avoid jank, and visibility-aware playback
+*/
+(function(){
+  if (window.__MH_PERF_VIDEO_PATCH__) return; window.__MH_PERF_VIDEO_PATCH__ = true;
+
+  // ---------- Helpers ----------
+  const $all = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
+  const once = (el, ev, fn, opts)=> { const h=(e)=>{ el.removeEventListener(ev,h,opts); fn(e); }; el.addEventListener(ev,h,opts); };
+  const on   = (el, ev, fn, opts)=> el && el.addEventListener(ev, fn, opts);
+  const raf  = (fn)=> (window.requestAnimationFrame||setTimeout)(fn);
+  const idle = (fn)=> (window.requestIdleCallback||setTimeout)(fn, 1);
+  const canUseIntersection = 'IntersectionObserver' in window;
+
+  // ---------- 0) Preconnect / Preload Hints (runtime injection) ----------
+  (function addPreconnects(){
+    const head = document.head || document.getElementsByTagName('head')[0];
+    if(!head) return;
+    const need = [
+      'https://api.github.com',
+      'https://raw.githubusercontent.com',
+      // Add your media host(s) here if different (CDN, etc.)
+    ];
+    need.forEach(href=>{
+      if (![...document.querySelectorAll('link[rel="preconnect"]')].some(l=>l.href===href)) {
+        const l = document.createElement('link');
+        l.rel = 'preconnect'; l.href = href; l.crossOrigin='anonymous';
+        head.appendChild(l);
+      }
+    });
+  })();
+
+  // ---------- 1) Lazy images + decoding hints ----------
+  function tuneImages(scope=document){
+    $all('img', scope).forEach(img=>{
+      if(!img.hasAttribute('loading'))  img.setAttribute('loading','lazy');
+      if(!img.hasAttribute('decoding')) img.setAttribute('decoding','async');
+      // Avoid layout jank: ensure CSS sets width/height or parent aspect-ratio.
+      // (We can’t guess correct sizes here without risking distortion.)
+    });
+  }
+  tuneImages();
+
+  // ---------- 2) Video Manager (autoplay with sound where possible) ----------
+  const videoState = {
+    enhanced: new WeakSet(),
+    wantSound: true,
+    audioUnlocked: sessionStorage.getItem('mh:audioUnlocked') === '1',
+    blockedOnce: false,
+    visibleVideos: new Set(),
+  };
+
+  function enhanceVideo(v){
+    if(!v || videoState.enhanced.has(v)) return;
+    videoState.enhanced.add(v);
+
+    // Mobile inline & controls for user audio control; preload light.
+    v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline',''); v.setAttribute('x5-playsinline','');
+    if(!v.hasAttribute('preload')) v.setAttribute('preload','metadata');
+    // Do not force controls off; some UAs require visible controls for user-initiated audio
+    if(!v.hasAttribute('controls')) v.setAttribute('controls','');
+
+    // Responsive fit
+    if(!v.style.maxWidth) v.style.maxWidth = '100%';
+    if(!v.style.height)   v.style.height = 'auto';
+    if(!v.style.objectFit) v.style.objectFit = 'cover';
+
+    // Attempt to start with audio if allowed
+    tryPlay(v, {withSound: videoState.wantSound});
+  }
+
+  async function tryPlay(v, {withSound}){
+    try{
+      if(withSound && videoState.audioUnlocked){
+        v.muted = false;
+      }else if(withSound){
+        // Try without prior unlock (some browsers may allow due to prior engagement/site setting)
+        v.muted = false;
+      }else{
+        v.muted = true;
+      }
+      v.autoplay = true;
+
+      // If video had no src but a data-src, lazy attach it
+      if(!v.src && v.dataset && v.dataset.src){ v.src = v.dataset.src; }
+
+      await v.play();
+      // If we made it here, playback started. If it's with sound, perfect.
+      // If it started muted (policy), we'll unlock below on gesture.
+    }catch(e){
+      // Autoplay with sound is likely blocked by policy. Fall back to muted autoplay.
+      videoState.blockedOnce = true;
+      try{
+        v.muted = true;
+        v.autoplay = true;
+        await v.play();
+      }catch(_){}
+    }
+  }
+
+  // On first *any* user gesture, unlock audio sitewide, unmute, and replay visible videos.
+  function installAudioUnlock(){
+    if(videoState.audioUnlocked) return;
+    const unlock = ()=>{
+      videoState.audioUnlocked = true;
+      sessionStorage.setItem('mh:audioUnlocked','1');
+      // Unmute all visible videos and ensure playing
+      videoState.visibleVideos.forEach(v=>{
+        try{ v.muted = false; v.play().catch(()=>{}); }catch{}
+      });
+      // Remove the unlock listeners—one-time
+      ['click','touchstart','keydown'].forEach(ev=>document.removeEventListener(ev, unlock, {capture:true}));
+    };
+    ['click','touchstart','keydown'].forEach(ev=> document.addEventListener(ev, unlock, {capture:true, passive:true}));
+  }
+  installAudioUnlock();
+
+  // Intersection-based auto play/pause to save CPU/GPU
+  let io=null;
+  function observeVideos(){
+    if(!canUseIntersection) return;
+    if(io) return;
+    io = new IntersectionObserver(entries=>{
+      entries.forEach(en=>{
+        const v = en.target;
+        if(en.isIntersecting && en.intersectionRatio > 0.35){
+          videoState.visibleVideos.add(v);
+          // Ensure it’s playing (prefer with sound if unlocked)
+          tryPlay(v, {withSound:true});
+        }else{
+          videoState.visibleVideos.delete(v);
+          try{ v.pause(); }catch{}
+        }
+      });
+    }, {threshold:[0,0.35,0.6,1]});
+    $all('video').forEach(v=> io.observe(v));
+  }
+
+  function enhanceAllVideos(scope=document){
+    $all('video', scope).forEach(enhanceVideo);
+    observeVideos();
+  }
+  enhanceAllVideos();
+
+  // Watch the DOM for newly inserted media (e.g., after feed loads)
+  const mo = new MutationObserver(muts=>{
+    let needImgTune=false, needVidTune=false;
+    muts.forEach(m=>{
+      m.addedNodes && m.addedNodes.forEach(n=>{
+        if(n.nodeType!==1) return;
+        if(n.tagName==='IMG') needImgTune=true;
+        if(n.tagName==='VIDEO') needVidTune=true;
+        if(n.querySelector){
+          if(n.querySelector('img')) needImgTune=true;
+          if(n.querySelector('video')) needVidTune=true;
+        }
+      });
+    });
+    if(needImgTune) raf(()=> tuneImages());
+    if(needVidTune) raf(()=> enhanceAllVideos());
+  });
+  mo.observe(document.documentElement, {childList:true, subtree:true});
+
+  // Pause videos when tab is hidden; resume when visible
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){
+      videoState.visibleVideos.forEach(v=> { try{ v.pause(); }catch{} });
+    }else{
+      videoState.visibleVideos.forEach(v=> { tryPlay(v, {withSound:true}); }catch{} );
+    }
+  }, {passive:true});
+
+  // ---------- 3) Passive event listeners for common scroll/touch (avoid jank) ----------
+  // We can’t convert existing handlers, but we ensure ours are passive and avoid heavy work.
+  window.addEventListener('scroll', ()=>{}, {passive:true});
+  window.addEventListener('touchstart', ()=>{}, {passive:true});
+  window.addEventListener('wheel', ()=>{}, {passive:true});
+
+  // ---------- 4) Idle-time cleanups ----------
+  idle(()=> {
+    // Example: trim <video> preload for offscreen videos further (keep metadata only)
+    videoState.visibleVideos.forEach(v=>{
+      if(v.preload !== 'metadata') v.preload = 'metadata';
+    });
+    // Ensure images carry decoding hints (in case of late inserts)
+    tuneImages();
+  });
+
+  // ---------- 5) Network-aware tweaks ----------
+  if(navigator.connection){
+    const c = navigator.connection;
+    if(c.saveData || (c.effectiveType && /2g/.test(c.effectiveType))){
+      // On very slow connections, prefer muted start to ensure fast start,
+      // then we unmute automatically on first gesture (sitewide), minimizing stalls.
+      videoState.wantSound = false;
+    }
+  }
+
+  // Re-try sound autoplay once after first successful user-initiated play on any video
+  // (Some browsers flip site policy after engagement)
+  once(document, 'play', () => {
+    videoState.wantSound = true;
+    // The audio unlock handler already promotes to sound on next interaction
+  }, true);
+})();
+</script>
+  <!-- ===== Moments Hub — Reliable WhatsApp-style DMs + Admin Guard (Drop-in) =====
+Paste this <script> just before </body>. It’s idempotent and works with your existing markup.
+It will:
+• Make DMs open ONLY after you click a person; thread panel stays hidden otherwise.
+• Keep the chosen chat sticky (restored on reload) and never “disappear”.
+• Persist messages/reads in the GitHub repo; show unread counts.
+• Enforce admin (reads admins.json), reveals Admin tab, and wires basic admin actions safely.
+-->
+<script>
+(function(){
+  if (window.__MH_DMS_ENFORCER__) return; window.__MH_DMS_ENFORCER__ = true;
+
+  // ---------- Small helpers ----------
+  const $ = (id)=> document.getElementById(id);
+  const on = (el, ev, fn, opts)=> el && el.addEventListener(ev, fn, opts||{passive:true});
+  const q  = (sel, root=document)=> root.querySelector(sel);
+  const qa = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
+  const now= ()=> Date.now();
+
+  // ---------- State defaults ----------
+  window.state = window.state || {};
+  state.owner  = state.owner  || 'hunter9201';
+  state.repo   = state.repo   || 'momentshub-data';
+  state.branch = state.branch || 'main';
+  state.token  = state.token  || '';        // PAT required for writes
+  state.me     = state.me     || null;      // connected GitHub user (optional)
+  state.user   = state.user   || null;      // App Account (preferred identity)
+  state.isAdmin= !!state.isAdmin;
+
+  const GH_API='https://api.github.com';
+  const RAW = (p)=> `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${state.branch}/${p}`;
+  const currentLogin = ()=> (state.user?.login) || (state.me?.login) || null;
+
+  // ---------- GitHub helpers ----------
+  async function gh(method, url, body){
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Accept':'application/vnd.github+json',
+        ...(state.token? {Authorization:'Bearer '+state.token}:{}),
+        ...(body? {'Content-Type':'application/json'}:{})
+      },
+      body: body? JSON.stringify(body): undefined
+    });
+    if(!res.ok) throw new Error(`${res.status}: ${await res.text().catch(()=> '')}`);
+    return res.json();
+  }
+  async function ghGetSha(path){
+    try{
+      const j = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}?ref=${state.branch}`);
+      return j.sha || null;
+    }catch{ return null; }
+  }
+  async function upsertText(path, text, message){
+    const sha = await ghGetSha(path);
+    return gh('PUT', `${GH_API}/repos/${state.owner}/${state.repo}/contents/${encodeURIComponent(path)}`, {
+      message: message || `update ${path}`,
+      content: btoa(unescape(encodeURIComponent(text))),
+      branch: state.branch,
+      ...(sha? {sha}: {})
+    });
+  }
+
+  // ---------- Admin guard ----------
+  async function detectAdmin(){
+    try{
+      const r = await fetch(RAW('admins.json'), {cache:'no-store'});
+      const list = r.ok? await r.json(): [];
+      state.isAdmin = Array.isArray(list) && !!currentLogin() && list.includes(currentLogin());
+    }catch{ state.isAdmin = false; }
+
+    // Reveal/Hide Admin tabs/buttons if present
+    const btn1 = $('adminTabBtn');
+    const btn2 = $('adminTabBtnMobile');
+    if(btn1) btn1.classList.toggle('hidden', !state.isAdmin);
+    if(btn2) btn2.classList.toggle('hidden', !state.isAdmin);
+  }
+
+  // Optional: wire basic admin actions (promote/suspend) if your Admin UI exists
+  async function wireAdminPanel(){
+    const usersHost = $('adm-users'); if(!usersHost) return;
+    usersHost.onclick = async (e)=>{
+      const b = e.target.closest('[data-act]');
+      if(!b || !state.isAdmin) return;
+      const login = b.dataset.id, act=b.dataset.act;
+      try{
+        const pr = await fetch(RAW(`profiles/${login}.json`), {cache:'no-store'});
+        if(!pr.ok) return alert('Profile not found');
+        const prof = await pr.json();
+        if(act==='role')   prof.role  = (prof.role==='admin' ? 'user':'admin');
+        if(act==='suspend')prof.status= (prof.status==='suspended' ? 'active':'suspended');
+        await upsertText(`profiles/${login}.json`, JSON.stringify(prof,null,2), `admin update ${login}`);
+        // Re-render by triggering your existing renderAdmin(), if available
+        if(typeof window.renderAdmin==='function'){ try{ await window.renderAdmin(); }catch{} }
+      }catch(err){ alert('Admin action failed: '+(err?.message||err)); }
+    };
+
+    const rebuildBtn = $('btn-rebuild-indexes');
+    if(rebuildBtn){
+      rebuildBtn.onclick = async ()=>{
+        if(!state.isAdmin) return alert('Admins only');
+        try{
+          // simple rebuild: read all moments and write indexes/moments.json
+          const arr = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/moments?ref=${state.branch}`);
+          const idx=[];
+          for(const it of (arr||[])){
+            if(it.type==='file' && it.name.endsWith('.json')){
+              try{
+                const j = await (await fetch(it.download_url, {cache:'no-store'})).json();
+                idx.push({ id:j.id, author:j.author, kind:j.kind||'image', caption:j.caption||'', tags:j.tags||[], link:j.link||null, media_url:j.media_url, created_at:j.created_at });
+              }catch{}
+            }
+          }
+          idx.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
+          await upsertText('indexes/moments.json', JSON.stringify(idx,null,2), 'rebuild moments index');
+          alert('Indexes rebuilt');
+        }catch(err){ alert('Rebuild failed: '+(err?.message||err)); }
+      };
+    }
+  }
+
+  // ---------- DMs core ----------
+  const pairKey=(a,b)=> [a,b].sort().join('__');
+  const READS={
+    path:(a,b,user)=> `dms_reads/${pairKey(a,b)}_${user}.json`,
+    async get(a,b,user){
+      try{
+        const r=await fetch(RAW(this.path(a,b,user)), {cache:'no-store'});
+        if(!r.ok) return {user,last_read_ts:0};
+        return await r.json();
+      }catch{ return {user,last_read_ts:0}; }
+    },
+    async set(a,b,user,ts){
+      try{ await upsertText(this.path(a,b,user), JSON.stringify({user,last_read_ts:ts},null,2), `dm read ${pairKey(a,b)} ${user}`); }catch{}
+    }
+  };
+  async function readThread(a,b){
+    const path=`dms/${pairKey(a,b)}.json`;
+    try{
+      const r=await fetch(RAW(path), {cache:'no-store'});
+      if(!r.ok) return {key:pairKey(a,b), messages:[]};
+      return await r.json();
+    }catch{ return {key:pairKey(a,b), messages:[]}; }
+  }
+  async function writeThread(a,b,thread){
+    const path=`dms/${pairKey(a,b)}.json`;
+    return upsertText(path, JSON.stringify(thread,null,2), `dm ${pairKey(a,b)}`);
+  }
+
+  async function allProfiles(){
+    try{
+      const arr = await gh('GET', `${GH_API}/repos/${state.owner}/${state.repo}/contents/profiles?ref=${state.branch}`);
+      const out=[];
+      for(const it of (arr||[])){
+        if(it.type==='file' && it.name.endsWith('.json')){
+          try{ out.push(await (await fetch(it.download_url, {cache:'no-store'})).json()); }catch{}
+        }
+      }
+      return out;
+    }catch{ return []; }
+  }
+
+  // ---------- UI wiring (WhatsApp-like behavior) ----------
+  const dmPeopleEl = $('dm-people');
+  const dmLogEl    = $('dm-log');
+  const dmHeaderEl = $('dm-header');
+  const dmSendBtn  = $('dm-send');
+  const dmMsgIn    = $('dm-msg');
+  const dmSearchIn = $('dm-search');
+
+  // Find the thread panel (right card) and ensure it hides until a person is chosen
+  const dmPanel = dmLogEl ? dmLogEl.closest('.md\\:col-span-2') || dmLogEl.closest('div') : null;
+  function showThreadPanel(show){
+    if(!dmPanel) return;
+    dmPanel.classList.toggle('opacity-0', !show);
+    dmPanel.classList.toggle('pointer-events-none', !show);
+    dmPanel.style.transition = 'opacity .15s ease';
+    if(!show){
+      if(dmHeaderEl) dmHeaderEl.textContent = 'Pick a person to chat.';
+      if(dmLogEl)    dmLogEl.innerHTML = '';
+    }
+  }
+  showThreadPanel(false);
+
+  let DM_OTHER=null; // {login,name,handle}
+  function saveLastChat(){
+    if(DM_OTHER?.login) sessionStorage.setItem('mh:lastChat', DM_OTHER.login);
+  }
+  async function restoreLastChat(){
+    const me = currentLogin(); if(!me) return;
+    const last = sessionStorage.getItem('mh:lastChat'); if(!last) return;
+    const list = await allProfiles();
+    const u = list.find(p=> p.login===last);
+    if(u){ DM_OTHER = u; await renderDM(); showThreadPanel(true); }
+  }
+
+  async function loadPeople(){
+    if(!dmPeopleEl) return;
+    const me = currentLogin();
+    const q  = (dmSearchIn?.value || '').toLowerCase();
+    let list = await allProfiles();
+    list = list.filter(p => [p.name,p.handle,p.login].join(' ').toLowerCase().includes(q))
+               .filter(p => p.login !== me);
+    dmPeopleEl.innerHTML = '';
+    for(const u of list){
+      const t = me ? await readThread(me, u.login) : {messages:[]};
+      const lastRead = me ? ((await READS.get(me, u.login, me)).last_read_ts || 0) : 0;
+      const unread = (t.messages||[]).filter(m=> m.to===me && m.ts>lastRead).length;
+      const row=document.createElement('button');
+      row.className='w-full text-left rounded-xl border border-black/10 bg-white/70 px-3 py-2 shadow-sm flex items-center justify-between gap-2';
+      row.innerHTML = `
+        <div class="flex items-center gap-2">
+          <div class="h-8 w-8 rounded-full border border-black/10 grid place-items-center text-[11px]">${(u.name||u.login).slice(0,1)}</div>
+          <div>
+            <div class="font-semibold">${u.name||'—'} ${u.handle? '• @'+u.handle:''}</div>
+            <div class="text-[11px] text-black/60">@${u.login}</div>
+          </div>
+        </div>
+        ${unread? `<span class="ml-2 rounded-full bg-emerald-500 text-white text-[11px] px-2 py-0.5">${unread}</span>`:''}
+      `;
+      row.onclick = async ()=>{ DM_OTHER=u; saveLastChat(); await renderDM(); showThreadPanel(true); };
+      dmPeopleEl.appendChild(row);
+    }
+  }
+  dmSearchIn && on(dmSearchIn,'input', ()=> loadPeople().catch(()=>{}));
+
+  function tickHTML(m, otherReadTs, otherLogin){
+    if(m.to===otherLogin){
+      const read = otherReadTs >= m.ts;
+      return `<span class="tick ${read? 'read':'delivered'}">${read? '✓✓':'✓'}</span>`;
+    }
+    return '';
+  }
+
+  async function renderDM(){
+    const me = currentLogin();
+    if(!me || !DM_OTHER){ showThreadPanel(false); return; }
+    dmSendBtn && (dmSendBtn.disabled=false);
+    if(dmHeaderEl) dmHeaderEl.textContent = `Chatting with ${DM_OTHER.name||'—'} (@${DM_OTHER.handle||DM_OTHER.login})`;
+
+    const t = await readThread(me, DM_OTHER.login);
+    const otherRead = (await READS.get(me, DM_OTHER.login, DM_OTHER.login)).last_read_ts || 0;
+
+    dmLogEl.innerHTML = (t.messages||[]).map(m=>{
+      const mine = m.from===me;
+      const bubble = mine? 'bg-sky-100':'bg-white/70';
+      const align  = mine? 'text-right':'';
+      return `
+        <div class="mb-2 ${align}">
+          <div class="inline-flex items-end gap-1">
+            <button class="inline-block rounded-xl px-3 py-2 text-sm ${bubble}" data-delmsg="${m.id}">${m.text}</button>
+            ${mine ? tickHTML(m, otherRead, DM_OTHER.login):''}
+          </div>
+          <div class="text-[10px] text-black/50">${new Date(m.ts).toLocaleString()} • ${m.from}</div>
+        </div>`;
+    }).join('');
+    dmLogEl.scrollTop = dmLogEl.scrollHeight;
+
+    // mark as read for messages to me
+    const newestToMe = [...(t.messages||[])].reverse().find(m=> m.to===me);
+    if(newestToMe){ await READS.set(me, DM_OTHER.login, me, newestToMe.ts); }
+
+    // Tap to delete (own messages or admin)
+    dmLogEl.onclick = async (e)=>{
+      const b = e.target.closest('[data-delmsg]'); if(!b) return;
+      const id = b.getAttribute('data-delmsg');
+      const isMine = b.parentElement?.parentElement?.classList.contains('text-right');
+      if(!isMine && !state.isAdmin) return; // guard
+      const T = await readThread(me, DM_OTHER.login);
+      T.messages = (T.messages||[]).filter(x=> x.id!==id);
+      await writeThread(me, DM_OTHER.login, T);
+      await renderDM();
+    };
+  }
+
+  async function sendDM(){
+    const me = currentLogin();
+    if(!me || !DM_OTHER) return alert('Sign into an app account and pick someone');
+    if(!state.token)   return alert('Connect to GitHub with a PAT that can write to the repo');
+    const text = (dmMsgIn?.value || '').trim(); if(!text) return;
+
+    // optimistic
+    const optimistic = { id:`opt_${now()}_${Math.random().toString(36).slice(2)}`, from:me, to:DM_OTHER.login, text, ts: now() };
+    const wrap = document.createElement('div');
+    wrap.className='mb-2 text-right';
+    wrap.innerHTML = `
+      <div class="inline-flex items-end gap-1">
+        <button class="inline-block rounded-xl px-3 py-2 text-sm bg-sky-100 opacity-80">${optimistic.text}</button>
+        <span class="tick">…</span>
+      </div>
+      <div class="text-[10px] text-black/50">Sending… • ${me}</div>`;
+    dmLogEl && dmLogEl.appendChild(wrap);
+    dmLogEl && (dmLogEl.scrollTop = dmLogEl.scrollHeight);
+    dmMsgIn.value = '';
+
+    try{
+      const T = await readThread(me, DM_OTHER.login);
+      T.messages = T.messages || [];
+      const real = { id:`${now()}_${Math.random().toString(36).slice(2)}`, from:me, to:DM_OTHER.login, text, ts: now() };
+      T.messages.push(real);
+      await writeThread(me, DM_OTHER.login, T);
+      await renderDM();
+      await loadPeople(); // refresh unread badges
+    }catch(e){
+      const tk = wrap.querySelector('.tick'); if(tk){ tk.textContent='✗'; tk.classList.add('text-red-600'); }
+      wrap.lastElementChild.textContent='Failed to send';
+    }
+  }
+
+  if(dmSendBtn){
+    dmSendBtn.onclick = sendDM;
+    dmSendBtn.disabled = !currentLogin();
+  }
+  if(dmMsgIn){
+    on(dmMsgIn,'keydown',(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendDM(); }});
+  }
+
+  // Keep DMs fresh but never hide the open thread
+  let dmRefresh=null, listRefresh=null;
+  function startLoops(){
+    stopLoops();
+    dmRefresh = setInterval(async ()=>{ if(DM_OTHER && currentLogin()){ try{ await renderDM(); }catch{} } }, 1700);
+    listRefresh = setInterval(async ()=>{ try{ await loadPeople(); }catch{} }, 3500);
+  }
+  function stopLoops(){ if(dmRefresh){clearInterval(dmRefresh);} if(listRefresh){clearInterval(listRefresh);} }
+  on(document,'visibilitychange', ()=> document.hidden? stopLoops(): startLoops());
+
+  // Prevent third-party code from hiding the thread panel once it’s open
+  const guardian = new MutationObserver(()=> {
+    if(DM_OTHER && dmPanel && (dmPanel.classList.contains('opacity-0') || dmPanel.classList.contains('hidden'))){
+      dmPanel.classList.remove('opacity-0','hidden','pointer-events-none');
+    }
+  });
+  if(dmPanel) guardian.observe(dmPanel, {attributes:true, attributeFilter:['class','style']});
+
+  // ---------- Boot ----------
+  (async ()=>{
+    try{ await detectAdmin(); }catch{}
+    try{ await wireAdminPanel(); }catch{}
+    try{ await loadPeople(); }catch{}
+    try{ await restoreLastChat(); }catch{}
+    startLoops();
+  })();
+
+})();
+</script>
+
 
   </html>
