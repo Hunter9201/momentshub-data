@@ -2931,6 +2931,125 @@ It will:
 
 })();
 </script>
+<script>
+/* ===== Moments Hub — Auto-Unmute on Volume Up (Drop-in) =====
+   Paste just before </body>. Safe to include once (guarded).
+   Behavior:
+   • If the user raises volume (video’s native volume slider → volumechange),
+     we unmute all visible videos and ensure they play with sound.
+   • Remembers “audio unlocked” for this session (no further taps needed).
+   • Falls back to unmuting on first user gesture (click/touch/keydown) if policy blocks.
+*/
+(function(){
+  if (window.__MH_AUTO_UNMUTE__) return; window.__MH_AUTO_UNMUTE__ = true;
+
+  const visible = new Set();
+  const audioState = {
+    unlocked: sessionStorage.getItem('mh:audioUnlocked') === '1'
+  };
+
+  const getVideos = () => Array.from(document.querySelectorAll('video'));
+
+  function markUnlocked(){
+    if (audioState.unlocked) return;
+    audioState.unlocked = true;
+    sessionStorage.setItem('mh:audioUnlocked','1');
+  }
+
+  async function unmuteAndPlay(v){
+    try {
+      v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline',''); v.autoplay = true;
+      v.muted = false;
+      if (!v.src && v.dataset && v.dataset.src) v.src = v.dataset.src;
+      await v.play();
+    } catch (e) {
+      // If policy still blocks, keep trying after next gesture
+    }
+  }
+
+  function unmuteVisible(){
+    markUnlocked();
+    visible.forEach(v => unmuteAndPlay(v));
+  }
+
+  // Intersection observer to track on-screen videos only
+  let io = null;
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver((entries)=>{
+      entries.forEach(en=>{
+        const v = en.target;
+        if (en.isIntersecting && en.intersectionRatio > 0.35) {
+          visible.add(v);
+          if (audioState.unlocked) unmuteAndPlay(v);
+        } else {
+          visible.delete(v);
+        }
+      });
+    }, {threshold:[0,0.35,0.6,1]});
+  }
+
+  function observeAllVideos(){
+    getVideos().forEach(v=>{
+      if (io) io.observe(v);
+      // Make sure we see volume changes even if the element was added later
+      if (!v.__mh_volbound){
+        v.addEventListener('volumechange', handleVolumeChange, true);
+        v.__mh_volbound = true;
+      }
+      // Nudge attributes for mobile
+      v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
+    });
+  }
+
+  // When *any* media volume goes > 0, flip global to unmuted-with-audio
+  function handleVolumeChange(e){
+    const el = e.target;
+    // Only react to real media elements
+    if (!(el instanceof HTMLMediaElement)) return;
+    // Some browsers clamp to 0..1
+    if (el.volume > 0) {
+      unmuteVisible();
+    }
+  }
+
+  // First user gesture also unlocks audio in browsers that require it
+  const unlockOnGesture = ()=>{
+    markUnlocked();
+    unmuteVisible();
+    ['click','touchstart','keydown'].forEach(ev =>
+      document.removeEventListener(ev, unlockOnGesture, {capture:true})
+    );
+  };
+  ['click','touchstart','keydown'].forEach(ev =>
+    document.addEventListener(ev, unlockOnGesture, {capture:true, passive:true})
+  );
+
+  // Global capture of volumechange (in case videos are injected dynamically)
+  document.addEventListener('volumechange', handleVolumeChange, true);
+
+  // Watch DOM for new videos and observe them
+  const mo = new MutationObserver((muts)=>{
+    let sawVideo = false;
+    muts.forEach(m=>{
+      m.addedNodes && m.addedNodes.forEach(n=>{
+        if (n.nodeType === 1) {
+          if (n.tagName === 'VIDEO' || n.querySelector?.('video')) sawVideo = true;
+        }
+      });
+    });
+    if (sawVideo) observeAllVideos();
+  });
+  mo.observe(document.documentElement, {childList:true, subtree:true});
+
+  // Boot
+  observeAllVideos();
+
+  // If tab becomes visible later and audio already unlocked, re-assert
+  document.addEventListener('visibilitychange', ()=>{
+    if (!document.hidden && audioState.unlocked) unmuteVisible();
+  }, {passive:true});
+})();
+</script>
 
 
   </html>
